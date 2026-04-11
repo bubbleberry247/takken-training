@@ -395,6 +395,9 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  // Auto-setup on first access
+  if (!getDbId_()) { setup_(); }
+
   // 通常ページ表示（OAuth 用テンプレート変数を渡す）
   var template = HtmlService.createTemplateFromFile('index');
   template.serverAuthResult = '';
