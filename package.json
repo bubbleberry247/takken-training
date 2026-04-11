@@ -1,0 +1,14 @@
+{
+  "name": "sekisan-training",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "clasp:login": "clasp login",
+    "clasp:push": "clasp push",
+    "lint": "echo \"(no lint)\"",
+    "fix-csv": "node tools/fix_7_questions.mjs"
+  },
+  "devDependencies": {
+    "@google/clasp": "^2.5.0"
+  }
+}

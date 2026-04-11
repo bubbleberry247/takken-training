@@ -1,0 +1,44 @@
+# Dependencies
+node_modules/
+package-lock.json
+
+# OS / Editor
+.DS_Store
+nul
+
+# Credentials / Config
+.clasp.json
+.clasprc.json
+.clasp.doboku-backup.json
+.clasp.oldscript.json
+
+# Backup files
+*.bak
+*.old
+src_backup_*/
+src_pulled_clasp.json
+src_pulled/
+
+# Build artifacts
+src/*.js
+
+# Logs
+logs/
+*.log
+
+# Python cache
+**/__pycache__/
+*.pyc
+
+# Claude Code local settings
+.claude/settings.local.json
+
+# WIP / temp
+tmp_*.py
+
+# Timestamped backup CSVs
+data/*_backup_*.csv
+tools/format_check_report_*.csv
+tools/integrity_check_report_*.csv
+tools/quality_check_report_*.csv
+tools/ocr_error_report_*.csv

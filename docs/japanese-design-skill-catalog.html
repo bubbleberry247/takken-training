@@ -1,0 +1,140 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Japanese Design-Skill Catalog</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Serif+JP:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{--bg:#f3eee6;--panel:#fffdf8;--ink:#22313a;--muted:#66727d;--line:#dbcab6;--accent:#9d6531;--accent-2:#48616f;--shadow:0 18px 40px rgba(45,34,22,0.08);--radius:24px}
+    *{box-sizing:border-box}
+    body{margin:0;font-family:"BIZ UDPGothic","Yu Gothic UI","Yu Gothic",sans-serif;background:linear-gradient(180deg,#f8f4ed,var(--bg));color:var(--ink);line-height:1.7}
+    .wrap{max-width:1400px;margin:0 auto;padding:28px 20px 60px}
+    .hero{padding:28px 30px;border:1px solid var(--line);background:rgba(255,253,249,.88);border-radius:32px;box-shadow:var(--shadow);margin-bottom:20px}
+    .eyebrow{font-size:12px;letter-spacing:.16em;text-transform:uppercase;color:var(--accent);font-weight:700;margin-bottom:8px}
+    h1{margin:0 0 12px;font-family:"Noto Serif JP",serif;font-size:34px;line-height:1.4;letter-spacing:.04em}
+    .hero p{margin:0;color:var(--muted);max-width:880px}
+    .toolbar{display:grid;grid-template-columns:1.2fr auto auto auto;gap:10px;margin:16px 0 20px}
+    .toolbar input,.toolbar select{width:100%;padding:12px 14px;border-radius:14px;border:1px solid var(--line);background:#fff;font:inherit;color:var(--ink)}
+    .toolbar .stat{display:flex;align-items:center;justify-content:center;padding:12px 14px;border-radius:14px;background:rgba(255,253,249,.88);border:1px solid var(--line);font-size:13px;color:var(--muted)}
+    .section-title{margin:22px 0 12px;font-family:"Noto Serif JP",serif;font-size:24px;letter-spacing:.04em}
+    .recommended{display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:14px;margin-bottom:8px}
+    .cards{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:14px}
+    .card{display:flex;flex-direction:column;gap:12px;padding:18px;border-radius:var(--radius);background:var(--panel);border:1px solid var(--line);box-shadow:var(--shadow)}
+    .card-header{display:flex;justify-content:space-between;gap:12px;align-items:flex-start}
+    .name{margin:0;font-size:22px;font-family:"Noto Serif JP",serif;line-height:1.45}
+    .source{font-size:12px;color:var(--muted);margin-top:4px}
+    .badges{display:flex;flex-wrap:wrap;gap:6px}
+    .badge{padding:4px 9px;border-radius:999px;font-size:12px;border:1px solid currentColor}
+    .fit-high{color:#3f6b4d;background:#edf5ef}
+    .fit-mid{color:#946227;background:#faf0e0}
+    .fit-low{color:#965149;background:#f8e7e3}
+    .vibe{color:var(--accent-2);background:#edf2f4}
+    .summary{font-size:14px;color:var(--ink)}
+    .meta{display:grid;gap:8px;font-size:13px;color:var(--muted)}
+    .meta strong{color:var(--ink)}
+    .why{padding:12px 13px;border-radius:16px;background:linear-gradient(180deg,#fff,#f5ede3);border:1px solid var(--line);font-size:13px}
+    .hidden{display:none !important}
+    .footer-note{margin-top:20px;font-size:13px;color:var(--muted)}
+    @media (max-width:1100px){.cards{grid-template-columns:repeat(2,minmax(0,1fr))}.recommended{grid-template-columns:repeat(2,minmax(0,1fr))}.toolbar{grid-template-columns:1fr 1fr}}
+    @media (max-width:720px){.cards,.recommended{grid-template-columns:1fr}.toolbar{grid-template-columns:1fr}.wrap{padding:18px 14px 40px}h1{font-size:28px}}
+  </style>
+</head>
+<body>
+  <div class="wrap">
+    <section class="hero">
+      <div class="eyebrow">Claude design-system skill / japanese catalog</div>
+      <h1>日本サイトの design-system 参照一覧</h1>
+      <p>`.claude/skills/design-system` の日本サイト参照を、sekisan-training の方向決め用にブラウザで見やすく整理しました。上の候補ほど sekisan と相性が良さそうなものです。</p>
+    </section>
+    <section>
+      <div class="toolbar">
+        <input id="search" type="search" placeholder="サイト名・キーワード・雰囲気で絞り込み">
+        <select id="fitFilter">
+          <option value="all">相性: すべて</option>
+          <option value="high">相性: 高</option>
+          <option value="mid">相性: 中</option>
+          <option value="low">相性: 低</option>
+        </select>
+        <select id="vibeFilter">
+          <option value="all">雰囲気: すべて</option>
+          <option value="静か・余白">静か・余白</option>
+          <option value="業務UI・信頼">業務UI・信頼</option>
+          <option value="読み物・解説">読み物・解説</option>
+          <option value="明快・親しみ">明快・親しみ</option>
+          <option value="ミニマル・テック">ミニマル・テック</option>
+          <option value="実用・軽快">実用・軽快</option>
+          <option value="実務・高密度">実務・高密度</option>
+          <option value="コンテンツ主役">コンテンツ主役</option>
+          <option value="生活・温かみ">生活・温かみ</option>
+          <option value="没入・ダーク">没入・ダーク</option>
+          <option value="強い・広告的">強い・広告的</option>
+        </select>
+        <div class="stat"><span id="count"></span> 件表示</div>
+      </div>
+    </section>
+    <section>
+      <div class="section-title">sekisan 向けおすすめ</div>
+      <div class="recommended" id="recommended"></div>
+    </section>
+    <section>
+      <div class="section-title">全一覧</div>
+      <div class="cards" id="cards"></div>
+      <div class="footer-note">参照元: `C:\Users\owner\.claude\skills\design-system\references\summaries\*.md`。内容は要約をもとに再構成しています。</div>
+    </section>
+  </div>
+  <script>
+    const items = [{"id":"muji","title":"Muji Design System Summary","source":"DESIGN.md — 無印良品ネットストア (muji.com)","policy":"ミニマリズムの極致。装飾を完全に排し、余白で語るデザイン","density":"ゆったりとしたメディア型。商品画像と余白を活かした構成","keywords":"素朴、静謐、無装飾、自然体、余白","vibe":"静か・余白","fit":"high","why":"積算ノート感が出しやすい"},{"id":"smarthr","title":"Smarthr Design System Summary","source":"DESIGN.md — SmartHR","policy":"クリーンで信頼感のある業務UI。装飾を排し、コンテンツと操作性を優先するミニマルなデザイン","density":"情報密度が高い業務アプリケーション向け。余白はあるが、コンパクトに情報を表示","keywords":"信頼性、明快、効率的、アクセシブル、ニュートラル","vibe":"業務UI・信頼","fit":"high","why":"進捗管理と相性が良い"},{"id":"zenn","title":"Zenn Design System Summary","source":"DESIGN.md — Zenn","policy":"クリーンで余白を活かしたモダンなデザイン。技術記事の読みやすさを重視しつつ、Qiita よりもシンプルで洗練された印象","density":"本文 line-height: 1.8 のゆったりとした行間。記事ページは読書体験を最優先にしたレイアウト","keywords":"クリーン、モダン、テクニカル、読みやすい、ブルーアクセント","vibe":"読み物・解説","fit":"high","why":"解説の読みやすさが高い"},{"id":"freee","title":"Freee Design System Summary","source":"DESIGN.md — freee","policy":"親しみやすく、明快な業務UI。複雑な会計・人事業務を、直感的で軽やかなインターフェースで提供する","density":"プロダクトUIは中程度の情報密度。コーポレートサイトはゆったりとした余白","keywords":"親しみやすい、明快、信頼性、シンプル、アクセシブル","vibe":"明快・親しみ","fit":"high","why":"導線がわかりやすい"},{"id":"cybozu","title":"Cybozu Design System Summary","source":"DESIGN.md — サイボウズ (Cybozu)","policy":"企業理念「チームワークあふれる社会を創る」を反映した、誠実で温かみのあるコーポレートデザイン。装飾を抑え、メッセージとコンテンツを主役にする","density":"ゆったりとした余白。line-height: 2.0 をグローバル適用し、読みやすさを重視","keywords":"誠実、チームワーク、読みやすい、ゆったり、信頼感","vibe":"静か・余白","fit":"high","why":"誠実で和文が読みやすい"},{"id":"note","title":"Note Design System Summary","source":"DESIGN.md — note","policy":"読みやすさを最優先にした、落ち着いたメディアプラットフォーム。書き手と読み手の体験を大切にし、コンテンツが主役のデザイン","density":"ゆったりとした余白。記事コンテンツエリアは 620px 幅で可読性を重視","keywords":"読みやすい、温かい、ミニマル、コンテンツファースト、落ち着き","vibe":"読み物・解説","fit":"high","why":"長文解説に強い"},{"id":"toyota","title":"Toyota Design System Summary","source":"DESIGN.md — Toyota","policy":"自動車メーカーとして信頼感と先進性を両立させた、クリーンでプロフェッショナルなデザイン。車種情報を主役にした構成","density":"車種紹介ページはビジュアル重視のゆったりしたレイアウト。お知らせ・ナビゲーションは情報密度が高い","keywords":"信頼、先進的、クリーン、プロフェッショナル、日本品質","vibe":"業務UI・信頼","fit":"mid","why":"信頼感は高いが少しコーポレート寄り"},{"id":"sansan","title":"Sansan Design System Summary","source":"DESIGN.md — Sansan","policy":"プロフェッショナルかつ信頼感のあるビジネスSaaSデザイン。深いネイビーブルーを基調とし、堅実さと先進性を両立","density":"LPらしいゆったりとしたセクション構成だが、body の line-height: 1.0 と極めてタイトな行間が特徴的","keywords":"信頼、堅実、ネイビーブルー、ビジネス、クリーン","vibe":"業務UI・信頼","fit":"mid","why":"硬派で締まるが少し強い"},{"id":"moneyforward","title":"Moneyforward Design System Summary","source":"DESIGN.md — マネーフォワード","policy":"堅実で信頼感のある業務ツール型UI。家計簿・資産管理という金融領域に相応しい、落ち着いたトーン","density":"情報密度が高い業務UI。14px ベースの小さめフォントで多くの情報を表示する","keywords":"堅実、信頼性、業務的、効率的、和文優先","vibe":"業務UI・信頼","fit":"mid","why":"実務感は強いがやや密度高め"},{"id":"studio","title":"Studio Design System Summary","source":"DESIGN.md — STUDIO","policy":"クリーン、モダン、プロフェッショナル。ノーコードWebサイトビルダーとしての信頼感と先進性を両立","density":"ゆったりとしたランディングページ型。余白を活かしたプレゼンテーション志向","keywords":"ミニマル、テック、洗練、高速、ダークテキスト on ホワイト","vibe":"ミニマル・テック","fit":"mid","why":"洗練されるが少しWeb制作寄り"},{"id":"jp-apple","title":"Apple Design System Summary","source":"DESIGN.md — Apple Japan","policy":"Apple グローバルと同一のミニマルデザイン。製品を主役にし、タイポグラフィと余白で構成するマガジンレイアウト","density":"非常にゆったり。大きなヒーロー画像と見出しが画面いっぱいに広がる","keywords":"ミニマル、プレミアム、製品中心、白黒基調、大胆なタイポグラフィ","vibe":"静か・余白","fit":"mid","why":"上品だがプレミアム感が前に出る"},{"id":"jp-notion","title":"Notion Design System Summary","source":"DESIGN.md — Notion 日本語版","policy":"ミニマル、ツールライク、ダーク基調のランディングページ。プロダクト全体はライト／ダーク切替対応だが、日本語版トップは `#191918` のダーク背景を使用","density":"中程度。ランディングページは余白を広くとり、アプリ内は情報密度が高い","keywords":"ミニマル、プロフェッショナル、モノクロ、ダーク、ドキュメント指向","vibe":"ミニマル・テック","fit":"mid","why":"道具感は良いがダーク寄り"},{"id":"mercari","title":"Mercari Design System Summary","source":"DESIGN.md — メルカリ (mercari.com/jp)","policy":"クリーン、ミニマル、白背景ベースの実用志向UI","density":"商品一覧のグリッド表示は情報密度が高いが、余白は十分に確保","keywords":"シンプル、信頼感、ホワイトスペース、メルカリレッド、機能的","vibe":"実用・軽快","fit":"mid","why":"実用性はあるが線が細め"},{"id":"pixiv","title":"Pixiv Design System Summary","source":"DESIGN.md — pixiv","policy":"クリーン、機能的、コンテンツ中心のギャラリーUI","density":"情報密度が高いグリッドレイアウト（イラスト一覧）と、ゆったりとした作品詳細ページの二面構成","keywords":"クリエイティブ、鮮明、軽快、ギャラリー的、システマティック","vibe":"コンテンツ主役","fit":"mid","why":"ギャラリー感は活かせるが学習UIには少し軽い"},{"id":"qiita","title":"Qiita Design System Summary","source":"DESIGN.md — Qiita","policy":"技術記事に特化した読みやすいデザイン。コードと日本語テキストの混植を前提とした組版","density":"本文は line-height: 1.8 のゆったりとした行間。情報密度の高いフィード画面と、読みやすさ重視の記事画面が共存","keywords":"テクニカル、クリーン、読みやすい、コードフレンドリー、開発者向け","vibe":"読み物・解説","fit":"mid","why":"技術記事感がやや強い"},{"id":"line","title":"Line Design System Summary","source":"DESIGN.md — LINE","policy":"クリーン、信頼感、大きくシンプルなタイポグラフィ","density":"ゆったりとしたランディング型。body font-size 20px と大きめの設定","keywords":"グリーン、大胆、メッセンジャー、親しみやすい、モダン","vibe":"明快・親しみ","fit":"mid","why":"親しみやすいがブランド色が強い"},{"id":"connpass","title":"Connpass Design System Summary","source":"DESIGN.md — connpass","policy":"情報を効率よく伝える実用的なUI。イベント検索・管理に特化した機能優先のデザイン","density":"情報密度が高め。イベント一覧・グループ一覧を一覧性重視で表示","keywords":"実用的、シンプル、情報密度、オレンジ、エンジニア向け","vibe":"実務・高密度","fit":"low","why":"一覧性は高いが受験アプリには少し素朴すぎる"},{"id":"cookpad","title":"Cookpad Design System Summary","source":"DESIGN.md — クックパッド (cookpad.com)","policy":"温かみのある家庭的なデザイン。料理と暮らしに寄り添う親しみやすさ","density":"UGCメディア型。レシピカードの一覧と詳細を行き来する構成","keywords":"温かみ、家庭的、親しみやすい、実用的、UGC","vibe":"生活・温かみ","fit":"low","why":"家庭感が強く積算の空気と離れる"},{"id":"rakuten","title":"Rakuten Design System Summary","source":"DESIGN.md — 楽天市場","policy":"情報密度が極めて高い、商品の露出を最大化するEC型レイアウト。装飾よりも情報量を優先し、あらゆる余白に商品やバナーを配置する","density":"極めて高密度。body 12px / line-height 1.1 という国内サイト最小級の本文設定。画面あたりの情報量を最大化する設計思想","keywords":"高密度、商売的、にぎやか、和文優先、レガシー","vibe":"実務・高密度","fit":"low","why":"情報量が多すぎる"},{"id":"tabelog","title":"Tabelog Design System Summary","source":"DESIGN.md — 食べログ","policy":"情報密度が高く、テキスト中心の実用的なグルメ・レビューポータル。スコア（評価点）が主要なナビゲーション要素","density":"高密度。body 12px を基本とし、一覧ページに多くの店舗情報を詰め込む構成","keywords":"実用的、情報密度、スコア重視、オレンジ、レビュー文化","vibe":"実務・高密度","fit":"low","why":"レビューサイト感が強い"},{"id":"abema","title":"Abema Design System Summary","source":"DESIGN.md — ABEMA","policy":"ダーク基調・没入感重視の動画配信UI。黒背景に白文字で映像コンテンツを際立たせる","density":"情報密度が高い。番組表・サムネイルグリッドが主体で、横スクロールのカルーセルを多用","keywords":"ダーク、没入感、エンタメ、コンテンツファースト、鮮やか","vibe":"没入・ダーク","fit":"low","why":"エンタメ方向に寄る"},{"id":"novasell","title":"Novasell Design System Summary","source":"DESIGN.md — Novasell","policy":"大胆でエネルギッシュなエージェンシーデザイン。超巨大タイポグラフィとネオングリーンで強い印象を与える","density":"極めてゆったり。1セクション=1メッセージの大胆な構成","keywords":"大胆、エネルギッシュ、ネオン、モノクロ+アクセント、テクノロジー感","vibe":"強い・広告的","fit":"low","why":"迫力はあるが学習用途には過剰"}];
+    function fitLabel(fit){ return fit === 'high' ? '相性 高' : fit === 'mid' ? '相性 中' : '相性 低'; }
+    function esc(value){ return String(value || '').replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;'); }
+    function cardHtml(item, compact){
+      return `
+        <article class="card item" data-fit="${esc(item.fit)}" data-vibe="${esc(item.vibe)}" data-search="${esc([item.id,item.title,item.source,item.policy,item.keywords,item.vibe,item.why].join(' ').toLowerCase())}">
+          <div class="card-header">
+            <div>
+              <h2 class="name">${esc(item.id)}</h2>
+              <div class="source">${esc(item.source)}</div>
+            </div>
+            <div class="badges">
+              <span class="badge fit-${esc(item.fit)}">${fitLabel(item.fit)}</span>
+              <span class="badge vibe">${esc(item.vibe)}</span>
+            </div>
+          </div>
+          <div class="summary">${esc(item.policy)}</div>
+          ${compact ? '' : `
+            <div class="meta">
+              <div><strong>密度:</strong> ${esc(item.density)}</div>
+              <div><strong>キーワード:</strong> ${esc(item.keywords)}</div>
+            </div>
+          `}
+          <div class="why"><strong>sekisan 観点:</strong> ${esc(item.why)}</div>
+        </article>
+      `;
+    }
+    const recommended = items.filter(item => item.fit === 'high').slice(0, 4);
+    document.getElementById('recommended').innerHTML = recommended.map(item => cardHtml(item, true)).join('');
+    document.getElementById('cards').innerHTML = items.map(item => cardHtml(item, false)).join('');
+    function applyFilter(){
+      const q = document.getElementById('search').value.trim().toLowerCase();
+      const fit = document.getElementById('fitFilter').value;
+      const vibe = document.getElementById('vibeFilter').value;
+      let count = 0;
+      document.querySelectorAll('#cards .item').forEach(el => {
+        const matchesQ = !q || el.dataset.search.includes(q);
+        const matchesFit = fit === 'all' || el.dataset.fit === fit;
+        const matchesVibe = vibe === 'all' || el.dataset.vibe === vibe;
+        const ok = matchesQ && matchesFit && matchesVibe;
+        el.classList.toggle('hidden', !ok);
+        if (ok) count += 1;
+      });
+      document.getElementById('count').textContent = String(count);
+    }
+    document.getElementById('search').addEventListener('input', applyFilter);
+    document.getElementById('fitFilter').addEventListener('change', applyFilter);
+    document.getElementById('vibeFilter').addEventListener('change', applyFilter);
+    applyFilter();
+  </script>
+</body>
+</html>

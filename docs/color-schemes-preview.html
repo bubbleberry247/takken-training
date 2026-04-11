@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>配色候補プレビュー - DoBok</title>
+<style>
+  *{box-sizing:border-box;margin:0;padding:0}
+  body{font-family:"Meiryo","メイリオ",-apple-system,sans-serif;background:#f0f0f0;padding:20px}
+  h1{text-align:center;margin-bottom:30px;font-size:1.5rem;color:#333}
+  .schemes{display:grid;grid-template-columns:repeat(auto-fit,minmax(360px,1fr));gap:30px;max-width:1200px;margin:0 auto}
+  .scheme{border-radius:16px;overflow:hidden;box-shadow:0 4px 20px rgba(0,0,0,0.15)}
+  .scheme-label{padding:12px 16px;font-weight:700;font-size:1.1rem;text-align:center;background:#333;color:#fff}
+
+  /* --- Mock app layout --- */
+  .mock-app{width:100%}
+  .mock-header{padding:14px 16px;text-align:center;font-weight:700;font-size:0.95rem}
+  .mock-summary{padding:6px 12px;font-size:0.75rem;display:flex;justify-content:space-between}
+  .mock-body{padding:12px}
+  .mock-card{border-radius:12px;padding:14px;margin-bottom:10px}
+  .mock-card-title{font-size:0.85rem;font-weight:700;margin-bottom:8px}
+  .mock-tiles{display:grid;grid-template-columns:1fr 1fr;gap:8px;margin-bottom:10px}
+  .mock-tile{border-radius:12px;padding:16px 8px;text-align:center;cursor:pointer}
+  .mock-tile-icon{font-size:1.8rem;margin-bottom:6px}
+  .mock-tile-label{font-size:0.8rem;font-weight:700}
+  .mock-tile-sub{font-size:0.65rem;margin-top:2px}
+  .mock-btn{border:none;padding:10px 20px;border-radius:10px;font-weight:700;font-size:0.85rem;width:100%;cursor:pointer;margin-top:6px}
+  .mock-kpi{display:grid;grid-template-columns:1fr 1fr;gap:8px}
+  .mock-kpi-item{border-radius:10px;padding:10px;text-align:center}
+  .mock-kpi-label{font-size:0.65rem;font-weight:500}
+  .mock-kpi-value{font-size:1.5rem;font-weight:800}
+  .mock-tag{display:inline-block;padding:4px 12px;border-radius:14px;font-size:0.75rem;font-weight:500;margin:2px}
+  .mock-tab-nav{display:flex;border-bottom:2px solid transparent}
+  .mock-tab{padding:8px 14px;font-size:0.8rem;font-weight:600;border-bottom:3px solid transparent;text-align:center;flex:1}
+
+  /* Choice items */
+  .mock-choices{display:flex;flex-direction:column;gap:6px;margin-top:8px}
+  .mock-choice{display:flex;align-items:center;gap:10px;padding:10px 12px;border-radius:10px;border:2px solid transparent}
+  .mock-choice-num{width:30px;height:30px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-weight:700;font-size:0.85rem;flex-shrink:0}
+  .mock-choice-text{font-size:0.8rem;font-weight:500}
+
+  .color-palette{display:flex;gap:0;margin-top:8px;border-radius:8px;overflow:hidden}
+  .color-swatch{flex:1;height:40px;display:flex;align-items:center;justify-content:center;font-size:0.6rem;font-weight:600}
+</style>
+</head>
+<body>
+
+<h1>配色候補プレビュー — 白地×青ベース</h1>
+<p style="text-align:center;margin-bottom:24px;color:#666;font-size:0.9rem">タイトル: 1級施工管理技士（土木）一次試験 合格対策演習</p>
+
+<div class="schemes">
+
+<!-- ===== Scheme A: Royal Blue ===== -->
+<div class="scheme">
+  <div class="scheme-label">A案: ロイヤルブルー（信頼感・正統派）</div>
+  <div class="mock-app" style="background:#ffffff">
+    <div class="mock-header" style="background:#1a56db;color:#fff;border-bottom:2px solid #1648b8">
+      1級施工管理技士（土木）一次試験 合格対策演習
+    </div>
+    <div class="mock-summary" style="background:#f0f5ff;color:#4b5563;border-bottom:1px solid #dbeafe">
+      <span>👤 田中太郎</span><span style="background:#1a56db;color:#fff;padding:2px 8px;border-radius:6px;font-weight:600">令和8年度</span>
+    </div>
+    <div class="mock-body" style="background:#f8fafc">
+      <div class="mock-tiles">
+        <div class="mock-tile" style="background:#ffffff;border:2px solid #1a56db;color:#1a56db">
+          <div class="mock-tile-icon">📝</div>
+          <div class="mock-tile-label" style="color:#1e293b">ミニテスト</div>
+          <div class="mock-tile-sub" style="color:#6b7280">10問ずつ演習</div>
+        </div>
+        <div class="mock-tile" style="background:#ffffff;border:2px solid #1a56db;color:#1a56db">
+          <div class="mock-tile-icon">📖</div>
+          <div class="mock-tile-label" style="color:#1e293b">模試</div>
+          <div class="mock-tile-sub" style="color:#6b7280">年度別本番形式</div>
+        </div>
+      </div>
+      <div class="mock-card" style="background:#ffffff;border:1px solid #e2e8f0">
+        <div class="mock-card-title" style="color:#1e293b">📊 学習状況</div>
+        <div class="mock-kpi">
+          <div class="mock-kpi-item" style="background:#eff6ff;border:1px solid #dbeafe">
+            <div class="mock-kpi-label" style="color:#6b7280">正答率</div>
+            <div class="mock-kpi-value" style="color:#1a56db">72%</div>
+          </div>
+          <div class="mock-kpi-item" style="background:#eff6ff;border:1px solid #dbeafe">
+            <div class="mock-kpi-label" style="color:#6b7280">演習数</div>
+            <div class="mock-kpi-value" style="color:#1a56db">148</div>
+          </div>
+        </div>
+      </div>
+      <div class="mock-card" style="background:#ffffff;border:1px solid #e2e8f0">
+        <div class="mock-card-title" style="color:#1e293b">解答画面イメージ</div>
+        <div class="mock-choices">
+          <div class="mock-choice" style="border-color:#d1d5db;background:#fff">
+            <div class="mock-choice-num" style="border:2px solid #d1d5db;color:#6b7280;background:#f9fafb">1</div>
+            <div class="mock-choice-text" style="color:#1e293b">コンクリートの打設温度は...</div>
+          </div>
+          <div class="mock-choice" style="border-color:#1a56db;background:#eff6ff">
+            <div class="mock-choice-num" style="background:#1a56db;color:#fff;border:2px solid #1a56db">2</div>
+            <div class="mock-choice-text" style="color:#1e293b">鉄筋のかぶり厚さは...</div>
+          </div>
+          <div class="mock-choice" style="border-color:#d1d5db;background:#fff">
+            <div class="mock-choice-num" style="border:2px solid #d1d5db;color:#6b7280;background:#f9fafb">3</div>
+            <div class="mock-choice-text" style="color:#1e293b">型枠の存置期間は...</div>
+          </div>
+        </div>
+        <div class="mock-btn" style="background:#1a56db;color:#fff;margin-top:10px">解答する</div>
+      </div>
+    </div>
+    <div class="color-palette">
+      <div class="color-swatch" style="background:#1a56db;color:#fff">#1a56db</div>
+      <div class="color-swatch" style="background:#3b82f6;color:#fff">#3b82f6</div>
+      <div class="color-swatch" style="background:#dbeafe;color:#1a56db">#dbeafe</div>
+      <div class="color-swatch" style="background:#eff6ff;color:#1a56db">#eff6ff</div>
+      <div class="color-swatch" style="background:#f8fafc;color:#333">#f8fafc</div>
+      <div class="color-swatch" style="background:#1e293b;color:#fff">#1e293b</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Scheme B: Sky Blue ===== -->
+<div class="scheme">
+  <div class="scheme-label">B案: スカイブルー（爽やか・親しみやすい）</div>
+  <div class="mock-app" style="background:#ffffff">
+    <div class="mock-header" style="background:#0284c7;color:#fff;border-bottom:2px solid #0369a1">
+      1級施工管理技士（土木）一次試験 合格対策演習
+    </div>
+    <div class="mock-summary" style="background:#f0f9ff;color:#4b5563;border-bottom:1px solid #e0f2fe">
+      <span>👤 田中太郎</span><span style="background:#0284c7;color:#fff;padding:2px 8px;border-radius:6px;font-weight:600">令和8年度</span>
+    </div>
+    <div class="mock-body" style="background:#f8fafc">
+      <div class="mock-tiles">
+        <div class="mock-tile" style="background:#ffffff;border:2px solid #0284c7;color:#0284c7">
+          <div class="mock-tile-icon">📝</div>
+          <div class="mock-tile-label" style="color:#1e293b">ミニテスト</div>
+          <div class="mock-tile-sub" style="color:#6b7280">10問ずつ演習</div>
+        </div>
+        <div class="mock-tile" style="background:#ffffff;border:2px solid #0284c7;color:#0284c7">
+          <div class="mock-tile-icon">📖</div>
+          <div class="mock-tile-label" style="color:#1e293b">模試</div>
+          <div class="mock-tile-sub" style="color:#6b7280">年度別本番形式</div>
+        </div>
+      </div>
+      <div class="mock-card" style="background:#ffffff;border:1px solid #e2e8f0">
+        <div class="mock-card-title" style="color:#1e293b">📊 学習状況</div>
+        <div class="mock-kpi">
+          <div class="mock-kpi-item" style="background:#f0f9ff;border:1px solid #e0f2fe">
+            <div class="mock-kpi-label" style="color:#6b7280">正答率</div>
+            <div class="mock-kpi-value" style="color:#0284c7">72%</div>
+          </div>
+          <div class="mock-kpi-item" style="background:#f0f9ff;border:1px solid #e0f2fe">
+            <div class="mock-kpi-label" style="color:#6b7280">演習数</div>
+            <div class="mock-kpi-value" style="color:#0284c7">148</div>
+          </div>
+        </div>
+      </div>
+      <div class="mock-card" style="background:#ffffff;border:1px solid #e2e8f0">
+        <div class="mock-card-title" style="color:#1e293b">解答画面イメージ</div>
+        <div class="mock-choices">
+          <div class="mock-choice" style="border-color:#d1d5db;background:#fff">
+            <div class="mock-choice-num" style="border:2px solid #d1d5db;color:#6b7280;background:#f9fafb">1</div>
+            <div class="mock-choice-text" style="color:#1e293b">コンクリートの打設温度は...</div>
+          </div>
+          <div class="mock-choice" style="border-color:#0284c7;background:#f0f9ff">
+            <div class="mock-choice-num" style="background:#0284c7;color:#fff;border:2px solid #0284c7">2</div>
+            <div class="mock-choice-text" style="color:#1e293b">鉄筋のかぶり厚さは...</div>
+          </div>
+          <div class="mock-choice" style="border-color:#d1d5db;background:#fff">
+            <div class="mock-choice-num" style="border:2px solid #d1d5db;color:#6b7280;background:#f9fafb">3</div>
+            <div class="mock-choice-text" style="color:#1e293b">型枠の存置期間は...</div>
+          </div>
+        </div>
+        <div class="mock-btn" style="background:#0284c7;color:#fff;margin-top:10px">解答する</div>
+      </div>
+    </div>
+    <div class="color-palette">
+      <div class="color-swatch" style="background:#0284c7;color:#fff">#0284c7</div>
+      <div class="color-swatch" style="background:#38bdf8;color:#fff">#38bdf8</div>
+      <div class="color-swatch" style="background:#e0f2fe;color:#0284c7">#e0f2fe</div>
+      <div class="color-swatch" style="background:#f0f9ff;color:#0284c7">#f0f9ff</div>
+      <div class="color-swatch" style="background:#f8fafc;color:#333">#f8fafc</div>
+      <div class="color-swatch" style="background:#1e293b;color:#fff">#1e293b</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Scheme C: Navy + Gold ===== -->
+<div class="scheme">
+  <div class="scheme-label">C案: ネイビー×ゴールド（高級感・資格試験向き）</div>
+  <div class="mock-app" style="background:#ffffff">
+    <div class="mock-header" style="background:#1e3a5f;color:#fff;border-bottom:2px solid #d4a843">
+      1級施工管理技士（土木）一次試験 合格対策演習
+    </div>
+    <div class="mock-summary" style="background:#f5f7fa;color:#4b5563;border-bottom:1px solid #e2e8f0">
+      <span>👤 田中太郎</span><span style="background:#d4a843;color:#1e3a5f;padding:2px 8px;border-radius:6px;font-weight:700">令和8年度</span>
+    </div>
+    <div class="mock-body" style="background:#f8f9fb">
+      <div class="mock-tiles">
+        <div class="mock-tile" style="background:#ffffff;border:2px solid #1e3a5f;color:#1e3a5f">
+          <div class="mock-tile-icon">📝</div>
+          <div class="mock-tile-label" style="color:#1e293b">ミニテスト</div>
+          <div class="mock-tile-sub" style="color:#6b7280">10問ずつ演習</div>
+        </div>
+        <div class="mock-tile" style="background:#ffffff;border:2px solid #1e3a5f;color:#1e3a5f">
+          <div class="mock-tile-icon">📖</div>
+          <div class="mock-tile-label" style="color:#1e293b">模試</div>
+          <div class="mock-tile-sub" style="color:#6b7280">年度別本番形式</div>
+        </div>
+      </div>
+      <div class="mock-card" style="background:#ffffff;border:1px solid #e2e8f0">
+        <div class="mock-card-title" style="color:#1e3a5f">📊 学習状況</div>
+        <div class="mock-kpi">
+          <div class="mock-kpi-item" style="background:#f0f4f8;border:1px solid #d4dde8">
+            <div class="mock-kpi-label" style="color:#6b7280">正答率</div>
+            <div class="mock-kpi-value" style="color:#1e3a5f">72%</div>
+          </div>
+          <div class="mock-kpi-item" style="background:#f0f4f8;border:1px solid #d4dde8">
+            <div class="mock-kpi-label" style="color:#6b7280">演習数</div>
+            <div class="mock-kpi-value" style="color:#1e3a5f">148</div>
+          </div>
+        </div>
+      </div>
+      <div class="mock-card" style="background:#ffffff;border:1px solid #e2e8f0">
+        <div class="mock-card-title" style="color:#1e3a5f">解答画面イメージ</div>
+        <div class="mock-choices">
+          <div class="mock-choice" style="border-color:#d1d5db;background:#fff">
+            <div class="mock-choice-num" style="border:2px solid #d1d5db;color:#6b7280;background:#f9fafb">1</div>
+            <div class="mock-choice-text" style="color:#1e293b">コンクリートの打設温度は...</div>
+          </div>
+          <div class="mock-choice" style="border-color:#1e3a5f;background:#f0f4f8">
+            <div class="mock-choice-num" style="background:#1e3a5f;color:#d4a843;border:2px solid #1e3a5f;font-weight:800">2</div>
+            <div class="mock-choice-text" style="color:#1e293b">鉄筋のかぶり厚さは...</div>
+          </div>
+          <div class="mock-choice" style="border-color:#d1d5db;background:#fff">
+            <div class="mock-choice-num" style="border:2px solid #d1d5db;color:#6b7280;background:#f9fafb">3</div>
+            <div class="mock-choice-text" style="color:#1e293b">型枠の存置期間は...</div>
+          </div>
+        </div>
+        <div class="mock-btn" style="background:#1e3a5f;color:#d4a843;margin-top:10px">解答する</div>
+      </div>
+    </div>
+    <div class="color-palette">
+      <div class="color-swatch" style="background:#1e3a5f;color:#fff">#1e3a5f</div>
+      <div class="color-swatch" style="background:#2d5f8a;color:#fff">#2d5f8a</div>
+      <div class="color-swatch" style="background:#d4a843;color:#1e3a5f">#d4a843</div>
+      <div class="color-swatch" style="background:#f0f4f8;color:#1e3a5f">#f0f4f8</div>
+      <div class="color-swatch" style="background:#f8f9fb;color:#333">#f8f9fb</div>
+      <div class="color-swatch" style="background:#1e293b;color:#fff">#1e293b</div>
+    </div>
+  </div>
+</div>
+
+<!-- ===== Scheme D: Indigo Modern ===== -->
+<div class="scheme">
+  <div class="scheme-label">D案: インディゴ（モダン・現行色の明るい版）</div>
+  <div class="mock-app" style="background:#ffffff">
+    <div class="mock-header" style="background:#4f46e5;color:#fff;border-bottom:2px solid #4338ca">
+      1級施工管理技士（土木）一次試験 合格対策演習
+    </div>
+    <div class="mock-summary" style="background:#eef2ff;color:#4b5563;border-bottom:1px solid #e0e7ff">
+      <span>👤 田中太郎</span><span style="background:#4f46e5;color:#fff;padding:2px 8px;border-radius:6px;font-weight:600">令和8年度</span>
+    </div>
+    <div class="mock-body" style="background:#f8fafc">
+      <div class="mock-tiles">
+        <div class="mock-tile" style="background:#ffffff;border:2px solid #4f46e5;color:#4f46e5">
+          <div class="mock-tile-icon">📝</div>
+          <div class="mock-tile-label" style="color:#1e293b">ミニテスト</div>
+          <div class="mock-tile-sub" style="color:#6b7280">10問ずつ演習</div>
+        </div>
+        <div class="mock-tile" style="background:#ffffff;border:2px solid #4f46e5;color:#4f46e5">
+          <div class="mock-tile-icon">📖</div>
+          <div class="mock-tile-label" style="color:#1e293b">模試</div>
+          <div class="mock-tile-sub" style="color:#6b7280">年度別本番形式</div>
+        </div>
+      </div>
+      <div class="mock-card" style="background:#ffffff;border:1px solid #e2e8f0">
+        <div class="mock-card-title" style="color:#1e293b">📊 学習状況</div>
+        <div class="mock-kpi">
+          <div class="mock-kpi-item" style="background:#eef2ff;border:1px solid #e0e7ff">
+            <div class="mock-kpi-label" style="color:#6b7280">正答率</div>
+            <div class="mock-kpi-value" style="color:#4f46e5">72%</div>
+          </div>
+          <div class="mock-kpi-item" style="background:#eef2ff;border:1px solid #e0e7ff">
+            <div class="mock-kpi-label" style="color:#6b7280">演習数</div>
+            <div class="mock-kpi-value" style="color:#4f46e5">148</div>
+          </div>
+        </div>
+      </div>
+      <div class="mock-card" style="background:#ffffff;border:1px solid #e2e8f0">
+        <div class="mock-card-title" style="color:#1e293b">解答画面イメージ</div>
+        <div class="mock-choices">
+          <div class="mock-choice" style="border-color:#d1d5db;background:#fff">
+            <div class="mock-choice-num" style="border:2px solid #d1d5db;color:#6b7280;background:#f9fafb">1</div>
+            <div class="mock-choice-text" style="color:#1e293b">コンクリートの打設温度は...</div>
+          </div>
+          <div class="mock-choice" style="border-color:#4f46e5;background:#eef2ff">
+            <div class="mock-choice-num" style="background:#4f46e5;color:#fff;border:2px solid #4f46e5">2</div>
+            <div class="mock-choice-text" style="color:#1e293b">鉄筋のかぶり厚さは...</div>
+          </div>
+          <div class="mock-choice" style="border-color:#d1d5db;background:#fff">
+            <div class="mock-choice-num" style="border:2px solid #d1d5db;color:#6b7280;background:#f9fafb">3</div>
+            <div class="mock-choice-text" style="color:#1e293b">型枠の存置期間は...</div>
+          </div>
+        </div>
+        <div class="mock-btn" style="background:#4f46e5;color:#fff;margin-top:10px">解答する</div>
+      </div>
+    </div>
+    <div class="color-palette">
+      <div class="color-swatch" style="background:#4f46e5;color:#fff">#4f46e5</div>
+      <div class="color-swatch" style="background:#818cf8;color:#fff">#818cf8</div>
+      <div class="color-swatch" style="background:#e0e7ff;color:#4f46e5">#e0e7ff</div>
+      <div class="color-swatch" style="background:#eef2ff;color:#4f46e5">#eef2ff</div>
+      <div class="color-swatch" style="background:#f8fafc;color:#333">#f8fafc</div>
+      <div class="color-swatch" style="background:#1e293b;color:#fff">#1e293b</div>
+    </div>
+  </div>
+</div>
+
+</div>
+
+<div style="max-width:1200px;margin:30px auto;padding:20px;background:#fff;border-radius:12px;box-shadow:0 2px 10px rgba(0,0,0,0.1)">
+  <h2 style="font-size:1.1rem;margin-bottom:12px;color:#333">各案の特徴</h2>
+  <table style="width:100%;border-collapse:collapse;font-size:0.85rem">
+    <tr style="background:#f5f5f5"><th style="padding:8px;text-align:left;border-bottom:2px solid #ddd">案</th><th style="padding:8px;text-align:left;border-bottom:2px solid #ddd">メインカラー</th><th style="padding:8px;text-align:left;border-bottom:2px solid #ddd">印象</th><th style="padding:8px;text-align:left;border-bottom:2px solid #ddd">おすすめポイント</th></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600">A: ロイヤルブルー</td><td style="padding:8px;border-bottom:1px solid #eee"><span style="background:#1a56db;color:#fff;padding:2px 8px;border-radius:4px">#1a56db</span></td><td style="padding:8px;border-bottom:1px solid #eee">信頼感・正統派・落ち着き</td><td style="padding:8px;border-bottom:1px solid #eee">資格試験の真面目さにマッチ。万人受け</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600">B: スカイブルー</td><td style="padding:8px;border-bottom:1px solid #eee"><span style="background:#0284c7;color:#fff;padding:2px 8px;border-radius:4px">#0284c7</span></td><td style="padding:8px;border-bottom:1px solid #eee">爽やか・親しみ・清潔感</td><td style="padding:8px;border-bottom:1px solid #eee">学習アプリとして軽やかな印象。目に優しい</td></tr>
+    <tr><td style="padding:8px;border-bottom:1px solid #eee;font-weight:600">C: ネイビー×ゴールド</td><td style="padding:8px;border-bottom:1px solid #eee"><span style="background:#1e3a5f;color:#fff;padding:2px 8px;border-radius:4px">#1e3a5f</span> + <span style="background:#d4a843;color:#fff;padding:2px 8px;border-radius:4px">#d4a843</span></td><td style="padding:8px;border-bottom:1px solid #eee">高級感・権威・プロフェッショナル</td><td style="padding:8px;border-bottom:1px solid #eee">1級資格の重厚感。差別化しやすい</td></tr>
+    <tr><td style="padding:8px;font-weight:600">D: インディゴ</td><td style="padding:8px"><span style="background:#4f46e5;color:#fff;padding:2px 8px;border-radius:4px">#4f46e5</span></td><td style="padding:8px">モダン・テック感・スタイリッシュ</td><td style="padding:8px">現行の紫系を青寄りにシフト。変更量が少ない</td></tr>
+  </table>
+</div>
+
+</body>
+</html>

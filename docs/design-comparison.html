@@ -1,0 +1,372 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>sekisan-training Design Comparison</title>
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=BIZ+UDPGothic:wght@400;700&family=Noto+Sans+JP:wght@400;500;700&family=Noto+Serif+JP:wght@500;700&display=swap" rel="stylesheet">
+  <style>
+    :root{
+      --bg:#f2efe8;
+      --panel:#fffdfa;
+      --ink:#1f2933;
+      --muted:#66717c;
+      --line:#ddd3c5;
+      --shadow:0 18px 38px rgba(38,31,23,0.08);
+      --radius:28px;
+    }
+    *{box-sizing:border-box}
+    body{
+      margin:0;
+      font-family:"BIZ UDPGothic","Yu Gothic UI","Yu Gothic",sans-serif;
+      color:var(--ink);
+      background:
+        radial-gradient(circle at top right, rgba(167,132,86,0.18), transparent 24%),
+        linear-gradient(180deg,#f7f4ee, var(--bg));
+      line-height:1.7;
+    }
+    .page{
+      max-width:1400px;
+      margin:0 auto;
+      padding:32px 20px 60px;
+    }
+    .intro{
+      margin-bottom:24px;
+      padding:24px 26px;
+      background:rgba(255,253,250,0.85);
+      border:1px solid var(--line);
+      border-radius:32px;
+      box-shadow:var(--shadow);
+    }
+    .eyebrow{
+      font-size:12px;
+      letter-spacing:.16em;
+      text-transform:uppercase;
+      color:#9a6534;
+      font-weight:700;
+      margin-bottom:8px;
+    }
+    h1{
+      margin:0 0 10px;
+      font-size:34px;
+      line-height:1.35;
+      font-family:"Noto Serif JP",serif;
+      letter-spacing:.04em;
+    }
+    .intro p{
+      margin:0;
+      color:var(--muted);
+      max-width:760px;
+    }
+    .grid{
+      display:grid;
+      grid-template-columns:repeat(2,minmax(0,1fr));
+      gap:22px;
+    }
+    .sample{
+      overflow:hidden;
+      border-radius:var(--radius);
+      border:1px solid var(--line);
+      background:var(--panel);
+      box-shadow:var(--shadow);
+    }
+    .sample-header{
+      display:flex;
+      align-items:flex-start;
+      justify-content:space-between;
+      gap:16px;
+      padding:22px 24px 14px;
+    }
+    .sample-title{
+      margin:0;
+      font-size:28px;
+      font-family:"Noto Serif JP",serif;
+      line-height:1.4;
+    }
+    .sample-sub{
+      margin-top:4px;
+      font-size:13px;
+      color:var(--muted);
+    }
+    .fit{
+      padding:8px 12px;
+      border-radius:999px;
+      font-size:12px;
+      font-weight:700;
+      white-space:nowrap;
+      border:1px solid currentColor;
+    }
+    .hero{
+      margin:0 24px 18px;
+      padding:24px;
+      border-radius:24px;
+      min-height:210px;
+      display:grid;
+      align-content:space-between;
+      gap:16px;
+    }
+    .hero h2{
+      margin:0;
+      font-size:32px;
+      line-height:1.4;
+      font-family:"Noto Serif JP",serif;
+      letter-spacing:.03em;
+    }
+    .hero p{
+      margin:8px 0 0;
+      font-size:14px;
+      max-width:30em;
+    }
+    .chips{
+      display:flex;
+      flex-wrap:wrap;
+      gap:8px;
+    }
+    .chip{
+      padding:6px 10px;
+      border-radius:999px;
+      font-size:12px;
+      border:1px solid currentColor;
+      opacity:.9;
+    }
+    .mini-layout{
+      display:grid;
+      grid-template-columns:1.4fr .9fr;
+      gap:16px;
+      padding:0 24px 24px;
+    }
+    .stack{
+      display:grid;
+      gap:12px;
+    }
+    .card{
+      padding:16px;
+      border-radius:20px;
+      border:1px solid rgba(0,0,0,0.08);
+      min-height:96px;
+    }
+    .card h3{
+      margin:0 0 8px;
+      font-size:20px;
+      font-family:"Noto Serif JP",serif;
+    }
+    .card p{
+      margin:0;
+      font-size:13px;
+    }
+    .sidebox{
+      padding:16px;
+      border-radius:20px;
+      min-height:96px;
+      border:1px solid rgba(0,0,0,0.08);
+    }
+    .sidebox h4{
+      margin:0 0 8px;
+      font-size:16px;
+    }
+    .notes{
+      padding:0 24px 24px;
+      color:var(--muted);
+      font-size:13px;
+    }
+
+    .muji .sample-header{background:#f7f3ee}
+    .muji .fit{color:#7f0019}
+    .muji .hero{
+      background:linear-gradient(180deg,#f7f3ee,#f0e8df);
+      color:#251f1a;
+    }
+    .muji .chip{color:#6b5a49}
+    .muji .card,.muji .sidebox{
+      background:#fbf7f1;
+      border-color:#e5d8c6;
+    }
+
+    .smarthr .sample-header{background:#f5faf9}
+    .smarthr .fit{color:#0077c7}
+    .smarthr .hero{
+      background:linear-gradient(135deg,#f8fbfc,#edf5f8);
+      color:#1f2933;
+      font-family:"Noto Sans JP",sans-serif;
+    }
+    .smarthr .hero h2,.smarthr .card h3{font-family:"Noto Sans JP",sans-serif}
+    .smarthr .chip{color:#0077c7}
+    .smarthr .card,.smarthr .sidebox{
+      background:#fff;
+      border-color:#d8e3ea;
+    }
+
+    .zenn .sample-header{background:#f4f9ff}
+    .zenn .fit{color:#0f83fd}
+    .zenn .hero{
+      background:
+        linear-gradient(180deg,rgba(62,168,255,0.08),rgba(255,255,255,0.96)),
+        #fff;
+      color:#111827;
+    }
+    .zenn .chip{color:#0f83fd}
+    .zenn .card,.zenn .sidebox{
+      background:#fff;
+      border-color:#dbe8f5;
+    }
+
+    .freee .sample-header{background:#f4f7ff}
+    .freee .fit{color:#2864f0}
+    .freee .hero{
+      background:linear-gradient(135deg,#315fdb,#4d82ff 56%,#dfe8ff 140%);
+      color:#fff;
+    }
+    .freee .chip{color:#dce8ff}
+    .freee .card,.freee .sidebox{
+      background:#fff;
+      border-color:#d9e2ff;
+    }
+
+    @media (max-width:980px){
+      .grid{grid-template-columns:1fr}
+      .mini-layout{grid-template-columns:1fr}
+    }
+  </style>
+</head>
+<body>
+  <div class="page">
+    <section class="intro">
+      <div class="eyebrow">Claude design-system reference</div>
+      <h1>sekisan-training の方向性を、4つのサンプルで比較</h1>
+      <p>建築積算士の学習アプリとして「静かで信頼感がある」軸は共通にしつつ、どこまで業務寄りにするか、どこまで読み物寄りにするかの違いを見比べるための簡易モックです。</p>
+    </section>
+
+    <section class="grid">
+      <article class="sample muji">
+        <div class="sample-header">
+          <div>
+            <h2 class="sample-title">A. 無印良品風</h2>
+            <div class="sample-sub">静か / 素朴 / 余白重視</div>
+          </div>
+          <div class="fit">おすすめ度: 高</div>
+        </div>
+        <div class="hero">
+          <div>
+            <h2>12週間で、静かに仕上げる。</h2>
+            <p>余計な装飾を抑え、問題文と進捗だけを丁寧に見せる。積算ノートっぽさが最も出しやすい方向です。</p>
+          </div>
+          <div class="chips">
+            <span class="chip">生成色少なめ</span>
+            <span class="chip">紙っぽい配色</span>
+            <span class="chip">落ち着いた学習体験</span>
+          </div>
+        </div>
+        <div class="mini-layout">
+          <div class="stack">
+            <div class="card"><h3>ミニテスト</h3><p>大きな余白と簡素なカードで、気持ちよく順番に進める。</p></div>
+            <div class="card"><h3>年度別模試</h3><p>年度の一覧も静かに見せて、主役は常に問題と学習リズム。</p></div>
+          </div>
+          <div class="stack">
+            <div class="sidebox"><h4>相性</h4><p>図表・計算・解説を邪魔しない。</p></div>
+            <div class="sidebox"><h4>注意</h4><p>地味すぎると達成感が弱くなる。</p></div>
+          </div>
+        </div>
+        <div class="notes">向いているなら: 落ち着いた受験アプリ、紙の教材の延長、和文中心。</div>
+      </article>
+
+      <article class="sample smarthr">
+        <div class="sample-header">
+          <div>
+            <h2 class="sample-title">B. SmartHR風</h2>
+            <div class="sample-sub">信頼感 / 業務UI / 明快</div>
+          </div>
+          <div class="fit">おすすめ度: 高</div>
+        </div>
+        <div class="hero">
+          <div>
+            <h2>進捗管理が強い、整った学習ダッシュボード。</h2>
+            <p>業務アプリの安心感があり、KPI・進捗・テスト管理をわかりやすく整理できます。</p>
+          </div>
+          <div class="chips">
+            <span class="chip">ニュートラル</span>
+            <span class="chip">視認性高い</span>
+            <span class="chip">実務感がある</span>
+          </div>
+        </div>
+        <div class="mini-layout">
+          <div class="stack">
+            <div class="card"><h3>今週のミニテスト</h3><p>次にやることを明確に出しつつ、迷いを減らせる。</p></div>
+            <div class="card"><h3>分野別ミニテスト</h3><p>一覧や状態ラベルが見やすく、機能追加にも強い。</p></div>
+          </div>
+          <div class="stack">
+            <div class="sidebox"><h4>相性</h4><p>学習管理機能と相性がよい。</p></div>
+            <div class="sidebox"><h4>注意</h4><p>少し“社内システム感”が出やすい。</p></div>
+          </div>
+        </div>
+        <div class="notes">向いているなら: 進捗やデータの見やすさを最優先、今後も機能拡張したい。</div>
+      </article>
+
+      <article class="sample zenn">
+        <div class="sample-header">
+          <div>
+            <h2 class="sample-title">C. Zenn風</h2>
+            <div class="sample-sub">読みやすい / 技術ノート / 軽い</div>
+          </div>
+          <div class="fit">おすすめ度: 中</div>
+        </div>
+        <div class="hero">
+          <div>
+            <h2>解説が読みやすい、記事寄りの学習体験。</h2>
+            <p>問題だけでなく解説をしっかり読む前提なら、軽い青アクセントと読みやすい余白が活きます。</p>
+          </div>
+          <div class="chips">
+            <span class="chip">解説重視</span>
+            <span class="chip">軽やか</span>
+            <span class="chip">記事っぽい</span>
+          </div>
+        </div>
+        <div class="mini-layout">
+          <div class="stack">
+            <div class="card"><h3>問題と解説</h3><p>長めの解説や根拠の読みやすさを強くできる。</p></div>
+            <div class="card"><h3>弱点復習</h3><p>タグや補足テキストも軽く見せやすい。</p></div>
+          </div>
+          <div class="stack">
+            <div class="sidebox"><h4>相性</h4><p>説明文が多い画面に向く。</p></div>
+            <div class="sidebox"><h4>注意</h4><p>積算の“重厚感”は少し薄い。</p></div>
+          </div>
+        </div>
+        <div class="notes">向いているなら: 解説中心、読み物として気持ちよく使わせたい。</div>
+      </article>
+
+      <article class="sample freee">
+        <div class="sample-header">
+          <div>
+            <h2 class="sample-title">D. freee風</h2>
+            <div class="sample-sub">親しみ / 明快 / ややポップ</div>
+          </div>
+          <div class="fit">おすすめ度: 中</div>
+        </div>
+        <div class="hero">
+          <div>
+            <h2>わかりやすく前向きな、軽快な学習UI。</h2>
+            <p>進捗や開始ボタンを前向きに押しやすい雰囲気にできる一方、少し明るく軽めの印象になります。</p>
+          </div>
+          <div class="chips">
+            <span class="chip">親しみやすい</span>
+            <span class="chip">CTA強め</span>
+            <span class="chip">導線が明快</span>
+          </div>
+        </div>
+        <div class="mini-layout">
+          <div class="stack">
+            <div class="card"><h3>学習スタート</h3><p>開始ボタンや次アクションの勢いが最も出しやすい。</p></div>
+            <div class="card"><h3>ダッシュボード</h3><p>進捗カードやグラフも明るく整理できる。</p></div>
+          </div>
+          <div class="stack">
+            <div class="sidebox"><h4>相性</h4><p>迷わず進める設計に強い。</p></div>
+            <div class="sidebox"><h4>注意</h4><p>建築積算の渋さとは少し離れる。</p></div>
+          </div>
+        </div>
+        <div class="notes">向いているなら: 学習の継続性や押しやすさを優先したい。</div>
+      </article>
+    </section>
+  </div>
+</body>
+</html>

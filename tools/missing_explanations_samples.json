@@ -1,0 +1,406 @@
+{
+  "R2": [
+    {
+      "qId": "R2_A_01",
+      "yearKey": "R2gakkaA",
+      "qNum": 1,
+      "stem": "土の原位置試験における試験の名称,試験結果から求められるもの及び試験結 果の利用の組合せとして,次のうち適当なものはどれか。 [試験結果から [試験の名称] [試験結果の利用] 求められるもの]",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_02",
+      "yearKey": "R2gakkaA",
+      "qNum": 2,
+      "stem": "土工における土量の変化率に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_03",
+      "yearKey": "R2gakkaA",
+      "qNum": 3,
+      "stem": "TS(トータルステーション)・GNSS(衛星測位システム)を用いた盛土の情報化施工 に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_04",
+      "yearKey": "R2gakkaA",
+      "qNum": 4,
+      "stem": "建設発生土を盛土に利用する際の留意点に関する次の記述のうち,適当でないものはど れか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_05",
+      "yearKey": "R2gakkaA",
+      "qNum": 5,
+      "stem": "道路土工に用いられる軟弱地盤対策工法に関する次の記述のうち,適当でないものはど れか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_06",
+      "yearKey": "R2gakkaA",
+      "qNum": 6,
+      "stem": "コンクリート用骨材に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_07",
+      "yearKey": "R2gakkaA",
+      "qNum": 7,
+      "stem": "コンクリート用混和材料に関する次の記述のうち,適当でないものはどれか。 3",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_08",
+      "yearKey": "R2gakkaA",
+      "qNum": 8,
+      "stem": "コンクリートの打込み・締固めに関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_09",
+      "yearKey": "R2gakkaA",
+      "qNum": 9,
+      "stem": "コンクリートの配合に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_10",
+      "yearKey": "R2gakkaA",
+      "qNum": 10,
+      "stem": "鉄筋の加工・組立に関する次の記述のうち,適当なものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_11",
+      "yearKey": "R2gakkaA",
+      "qNum": 11,
+      "stem": "コンクリートの養生に関する次の記述のうち,適当なものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_12",
+      "yearKey": "R2gakkaA",
+      "qNum": 12,
+      "stem": "構造物の基礎に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_13",
+      "yearKey": "R2gakkaA",
+      "qNum": 13,
+      "stem": "中掘り杭工法の施工に関する次の記述のうち,適当なものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_14",
+      "yearKey": "R2gakkaA",
+      "qNum": 14,
+      "stem": "場所打ち杭工法の施工に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_15",
+      "yearKey": "R2gakkaA",
+      "qNum": 15,
+      "stem": "土留め支保工の施工に関する次の記述のうち,適当なものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_16",
+      "yearKey": "R2gakkaA",
+      "qNum": 16,
+      "stem": "鋼道路橋の架設上の留意事項に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_17",
+      "yearKey": "R2gakkaA",
+      "qNum": 17,
+      "stem": "鋼道路橋に用いる耐候性鋼材に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_18",
+      "yearKey": "R2gakkaA",
+      "qNum": 18,
+      "stem": "鋼道路橋における高力ボルトの締付け作業に関する次の記述のうち,適当なものはどれ か。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_19",
+      "yearKey": "R2gakkaA",
+      "qNum": 19,
+      "stem": "コンクリート構造物の劣化に関する次の記述のうち,適当なものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R2_A_20",
+      "yearKey": "R2gakkaA",
+      "qNum": 20,
+      "stem": "損傷を生じた鉄筋コンクリート構造物の補修に関する次の記述のうち,適当でないもの はどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    }
+  ],
+  "R3": [
+    {
+      "qId": "R3_A_01",
+      "yearKey": "R3gakkaA",
+      "qNum": 1,
+      "stem": "土質試験結果の活用に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_02",
+      "yearKey": "R3gakkaA",
+      "qNum": 2,
+      "stem": "法面保護工の施工に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_03",
+      "yearKey": "R3gakkaA",
+      "qNum": 3,
+      "stem": "TS(トータルステーション)・GNSS(全球測位衛星システム)を用いた情報化施工 による盛土工に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_04",
+      "yearKey": "R3gakkaA",
+      "qNum": 4,
+      "stem": "建設発生土を工作物の埋戻しに利用する際の留意点に関する次の記述のうち, 適当でないものはどれか。 ただし,工作物の埋戻しとは,道路その他の地表面下に埋設,又は構築した各種埋 設物を埋め戻すことをいう。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_05",
+      "yearKey": "R3gakkaA",
+      "qNum": 5,
+      "stem": "軟弱地盤対策工法に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_06",
+      "yearKey": "R3gakkaA",
+      "qNum": 6,
+      "stem": "コンクリート用粗骨材に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_07",
+      "yearKey": "R3gakkaA",
+      "qNum": 7,
+      "stem": "混和材を用いたコンクリートの特徴に関する次の記述のうち,適当なものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_08",
+      "yearKey": "R3gakkaA",
+      "qNum": 8,
+      "stem": "コンクリートの打込みに関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_09",
+      "yearKey": "R3gakkaA",
+      "qNum": 9,
+      "stem": "コンクリートの配合に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_10",
+      "yearKey": "R3gakkaA",
+      "qNum": 10,
+      "stem": "鉄筋の組立て・継手に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_11",
+      "yearKey": "R3gakkaA",
+      "qNum": 11,
+      "stem": "コンクリートの養生に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_12",
+      "yearKey": "R3gakkaA",
+      "qNum": 12,
+      "stem": "道路橋で用いられる基礎形式の種類とその特徴に関する次の記述のうち, 適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_13",
+      "yearKey": "R3gakkaA",
+      "qNum": 13,
+      "stem": "既製杭の施工に関する次の記述のうち,適当なものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_14",
+      "yearKey": "R3gakkaA",
+      "qNum": 14,
+      "stem": "場所打ち杭工法における支持層の確認及び支持層への根入れに関する次の記述のうち, 適当なものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_15",
+      "yearKey": "R3gakkaA",
+      "qNum": 15,
+      "stem": "土留め工の施工に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_16",
+      "yearKey": "R3gakkaA",
+      "qNum": 16,
+      "stem": "鋼橋における架設の施工に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_17",
+      "yearKey": "R3gakkaA",
+      "qNum": 17,
+      "stem": "鋼道路橋における溶接に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_18",
+      "yearKey": "R3gakkaA",
+      "qNum": 18,
+      "stem": "鋼道路橋における高力ボルトの施工及び検査に関する次の記述のうち, 適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_19",
+      "yearKey": "R3gakkaA",
+      "qNum": 19,
+      "stem": "コンクリートのアルカリシリカ反応の抑制対策に関する次の記述のうち, 適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    },
+    {
+      "qId": "R3_A_20",
+      "yearKey": "R3gakkaA",
+      "qNum": 20,
+      "stem": "コンクリート構造物の補強工法に関する次の記述のうち,適当でないものはどれか。",
+      "explainShort": "",
+      "explainLong": "",
+      "has_explainShort": false,
+      "has_explainLong": false
+    }
+  ]
+}

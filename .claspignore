@@ -1,0 +1,25 @@
+*.js
+src/*.js
+**/*.js
+src/README.md
+src/CLAUDE.md
+src/index_backup_*.html
+src/*.bak_*
+README.md
+CLAUDE.md
+index_backup_*.html
+*.bak_*
+
+# Dev/migration utility scripts with encoding issues
+insertSampleData.gs
+tempReplaceAll.gs
+fixTestPlan14.gs
+setupMembers.gs
+debugR3gakkaB.gs
+debugR3Status.gs
+checkQuestionBank.gs
+checkTestPlan14.gs
+addR3ToTestPlan.gs
+checkTestPlan14Labels.gs
+tempUpdate.gs
+addDisplayOrderToTestPlan14.gs

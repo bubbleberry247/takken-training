@@ -1,0 +1,105 @@
+
+================================================================================
+qId: R7gakkaA-002
+questionType: N/A
+imageUrl: ...
+choiceImageUrl: https://raw.githubusercontent.com/bubbleberry247/PDF-RakuRaku-Seisan/master/docs/assets/doboku-14w/i...
+
+stem (first 200 chars): 下図のコンシステンシー限界に関する下記の文章中の（イ）,（ロ）,（ハ）に当て はまる語句の次の組合せのうち、適当なものはどれか。...
+
+choiceA length: 23
+choiceB length: 23
+choiceC length: 23
+choiceD length: 23
+
+choiceA (first 100 chars): （イ）塑性限界　（ロ）液性限界　（ハ）液性指数...
+
+================================================================================
+qId: R7gakkaA-008
+questionType: N/A
+imageUrl: ...
+choiceImageUrl: ...
+
+stem (first 200 chars): TS(トータルステーション)・GNSS(全球測位衛星システム)を用いた盛土の情報 化施工に関する次の記述のうち、適当でないものはどれか。...
+
+choiceA length: 89
+choiceB length: 100
+choiceC length: 110
+choiceD length: 105
+
+choiceA (first 100 chars): 盛土の締固め管理システムの適用可否は、施工現場の立地・地形条件が原因となる計測障害 の有無、対象土の土質が締固め回数によって管理することが困難ではないこと等を確認し, 判断する。...
+
+================================================================================
+qId: R7gakkaA-028
+questionType: N/A
+imageUrl: ...
+choiceImageUrl: ...
+
+stem (first 200 chars): 堤防を開削する場合の仮締切工の施工に関する次の記述のうち、適当でないものは どれか。...
+
+choiceA length: 57
+choiceB length: 66
+choiceC length: 68
+choiceD length: 72
+
+choiceA (first 100 chars): 仮締切内の掘削は、水替え工による排水の濁りやその量の変化及び仮締切工である鋼矢板の変 形等を監視しながら施工する。...
+
+================================================================================
+qId: R7gakkaB-002
+questionType: N/A
+imageUrl: ...
+choiceImageUrl: ...
+
+stem (first 200 chars): 公共工事標準請負契約約款上、工事の施工に当たり受注者が監督員に通知し, その確認を請求しなければならない事項に該当しないものは、次の記述のうちどれか。...
+
+choiceA length: 36
+choiceB length: 16
+choiceC length: 40
+choiceD length: 49
+
+choiceA (first 100 chars): 図面、仕様書、現場説明書及び現場説明に対する質問回答書が一致しないこと。...
+
+================================================================================
+qId: R7gakkaB-003
+questionType: N/A
+imageUrl: ...
+choiceImageUrl: https://raw.githubusercontent.com/bubbleberry247/PDF-RakuRaku-Seisan/master/docs/assets/doboku-14w/i...
+
+stem (first 200 chars): 下図は、逆T型擁壁の配筋図を示したものである。 かかと版の引張鉄筋に該当する鉄筋番号は、次のうちどれか。...
+
+choiceA length: 4
+choiceB length: 4
+choiceC length: 4
+choiceD length: 4
+
+choiceA (first 100 chars): ①D13...
+
+================================================================================
+qId: R7gakkaB-008
+questionType: N/A
+imageUrl: ...
+choiceImageUrl: ...
+
+stem (first 200 chars): 建設工事現場における保護具使用に関する次の記述のうち、誤っているものはどれか。...
+
+choiceA length: 56
+choiceB length: 52
+choiceC length: 55
+choiceD length: 61
+
+choiceA (first 100 chars): 保護帽は、頭にあったものを使用し、一度でも大きな衝撃を受けた保護帽は、外観に損傷が なくても使用してはならない。...
+
+================================================================================
+qId: R7gakkaB-028
+questionType: N/A
+imageUrl: ...
+choiceImageUrl: ...
+
+stem (first 200 chars): 車両系建設機械の災害防止のために事業者が講じるべき措置に関する下記の1〜4の Oつの記述のうち、労働安全衛生法令上、正しいものの数は次のうちどれか。 1路肩、傾斜地等、車両系建設機械の転倒又は転落により運転者に危険が生ずるおそれ のある場所においては、転倒時保護構造を有し、かつ、シートベルトを備えたもの以外 の車両系建設機械を使用しないように努めなければならない。 2車両系建設機械の運転者が運転位...
+
+choiceA length: 2
+choiceB length: 2
+choiceC length: 2
+choiceD length: 2
+
+choiceA (first 100 chars): ①つ...

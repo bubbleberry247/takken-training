@@ -1,0 +1,355 @@
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+Claude for Chrome 説明文収集 - 引き継ぎ情報（2026-02-16更新版）
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+作成日: 2026-02-16 17:30
+更新内容: Claude Code自動収集の結果を反映
+
+【タスク概要】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1級土木施工管理技士試験の問題データベースで、詳細説明文（explainA-D）が不足している問題について、過去問サイト（https://1dobokusekou.kakomonn.com/）から解説を収集するタスクです。
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【現在の収集状況】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+■ 収集完了（58問）
+
+1. Claude Code自動収集: 21問
+   対象: R6gakkaA-036〜056（21問、ID: 78530-78550）
+   保存先: C:/Users/masam/doboku_explanations.json
+   形式: JSON形式（explainA-D、explainShort、explainLong、status、qId、ID）
+   品質: ✅ 全問合格（判定・理由含む完全な説明文）
+
+2. Claude for Chrome手動収集: 37問
+   保存先: C:\Users\masam\Downloads\無題のドキュメント (2).docx
+   形式: Word文書（Markdown表形式）
+   対象: R6gakkaA + R2gakkaA混合（上記21問と一部重複）
+
+■ 収集残り（30問）★今回の収集対象★
+
+1. R6gakkaA-057〜066（10問）
+   ID範囲: 78551-78560
+   状態: explainShort / explainA-D 全て空
+
+2. R2gakkaA-042〜061（20問）
+   ID範囲: 53666-53685
+   状態: explainShort / explainA-D 全て空
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【収集方法】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+■ 使用サイト
+サイト名: 1dobokusekou.kakomonn.com
+URL形式: https://1dobokusekou.kakomonn.com/questions/{ID番号}
+
+■ ID番号の確認方法
+下記の対応表を使用してください。
+
+■ 収集ツール
+Claude for Chrome（Google Docs上でMarkdown表形式で収集）
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【収集フォーマット】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+■ Google Docs Markdown表形式
+
+| qId | explainA | explainB | explainC | explainD | explainShort | explainLong | status | ID |
+|-----|----------|----------|----------|----------|--------------|-------------|--------|-----|
+
+■ 各列の説明
+
+qId: 問題ID（例: R6gakkaA-057）
+
+explainA-D: 各選択肢の個別説明
+  ✅ 必須: 「適当です/不適当です/誤りです」等の判定を含む
+  ✅ 必須: 理由・根拠を含む完全な説明文
+  ✅ 必須: 技術用語を正確に記載
+  ❌ 禁止: パイプ文字 | （表の区切りなので使用不可）
+  ❌ 禁止: 改行（半角スペースに置き換え）
+
+explainShort: 統合解説の要約（最大200文字）
+  - 問題のポイント・覚えるべき内容を簡潔に
+
+explainLong: 統合解説の全文
+  - まとめ・補足情報を含む
+
+status: 収集状況
+  ✅完了 - 正常に収集完了
+  ⚠️要確認 - 情報不完全・要再確認
+  ❌未収集 - サイトにデータなし
+
+ID: 問題のID番号（過去問サイトURL用）
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【品質基準】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+■ 必須要件（これが揃わないとNG）
+✅ explainA-Dが全て揃っている（4つ全て）
+✅ 各選択肢に判定（適当/不適当/正しい/誤り）が明記されている
+✅ 判定の理由・根拠が含まれている
+✅ 不正確な情報・推測・「?」・「不明」が含まれていない
+✅ 空欄がない
+
+■ 推奨要件（より良い品質のため）
+🟢 explainShortが簡潔で要点を押さえている
+🟢 explainLongに補足・まとめがある
+🟢 技術用語が正確に記載されている
+🟢 単位・数値が正確
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【収集対象リスト（30問）】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+■ R6gakkaA-057〜066（10問）
+
+qId             ID      URL
+────────────────────────────────────────────────────────────
+R6gakkaA-057    78551   https://1dobokusekou.kakomonn.com/questions/78551
+R6gakkaA-058    78552   https://1dobokusekou.kakomonn.com/questions/78552
+R6gakkaA-059    78553   https://1dobokusekou.kakomonn.com/questions/78553
+R6gakkaA-060    78554   https://1dobokusekou.kakomonn.com/questions/78554
+R6gakkaA-061    78555   https://1dobokusekou.kakomonn.com/questions/78555
+R6gakkaA-062    78556   https://1dobokusekou.kakomonn.com/questions/78556
+R6gakkaA-063    78557   https://1dobokusekou.kakomonn.com/questions/78557
+R6gakkaA-064    78558   https://1dobokusekou.kakomonn.com/questions/78558
+R6gakkaA-065    78559   https://1dobokusekou.kakomonn.com/questions/78559
+R6gakkaA-066    78560   https://1dobokusekou.kakomonn.com/questions/78560
+
+■ R2gakkaA-042〜061（20問）
+
+qId             ID      URL
+────────────────────────────────────────────────────────────
+R2gakkaA-042    53666   https://1dobokusekou.kakomonn.com/questions/53666
+R2gakkaA-043    53667   https://1dobokusekou.kakomonn.com/questions/53667
+R2gakkaA-044    53668   https://1dobokusekou.kakomonn.com/questions/53668
+R2gakkaA-045    53669   https://1dobokusekou.kakomonn.com/questions/53669
+R2gakkaA-046    53670   https://1dobokusekou.kakomonn.com/questions/53670
+R2gakkaA-047    53671   https://1dobokusekou.kakomonn.com/questions/53671
+R2gakkaA-048    53672   https://1dobokusekou.kakomonn.com/questions/53672
+R2gakkaA-049    53673   https://1dobokusekou.kakomonn.com/questions/53673
+R2gakkaA-050    53674   https://1dobokusekou.kakomonn.com/questions/53674
+R2gakkaA-051    53675   https://1dobokusekou.kakomonn.com/questions/53675
+R2gakkaA-052    53676   https://1dobokusekou.kakomonn.com/questions/53676
+R2gakkaA-053    53677   https://1dobokusekou.kakomonn.com/questions/53677
+R2gakkaA-054    53678   https://1dobokusekou.kakomonn.com/questions/53678
+R2gakkaA-055    53679   https://1dobokusekou.kakomonn.com/questions/53679
+R2gakkaA-056    53680   https://1dobokusekou.kakomonn.com/questions/53680
+R2gakkaA-057    53681   https://1dobokusekou.kakomonn.com/questions/53681
+R2gakkaA-058    53682   https://1dobokusekou.kakomonn.com/questions/53682
+R2gakkaA-059    53683   https://1dobokusekou.kakomonn.com/questions/53683
+R2gakkaA-060    53684   https://1dobokusekou.kakomonn.com/questions/53684
+R2gakkaA-061    53685   https://1dobokusekou.kakomonn.com/questions/53685
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【収集手順】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Google Docsで新規ドキュメントを作成
+   タイトル: 「doboku説明文収集_残り30問_2026-02-16」
+
+2. 上記のMarkdown表をコピー＆ペースト（ヘッダー行のみ）
+
+3. Claude for Chromeを起動し、以下のプロンプトを実行:
+   ────────────────────────────────────────────────
+   下記の30問について、https://1dobokusekou.kakomonn.com/questions/{ID} から解説を収集してください。
+
+   収集対象:
+   - R6gakkaA-057〜066（10問、ID: 78551-78560）
+   - R2gakkaA-042〜061（20問、ID: 53666-53685）
+
+   収集内容:
+   - explainA-D: 各選択肢の判定（適当/不適当）と理由を含む完全な説明
+   - explainShort: 問題のポイントを200文字以内で要約
+   - explainLong: 統合解説の全文（補足・まとめ含む）
+   - status: ✅完了、⚠️要確認、❌未収集
+   - qId, ID: 正確に記載
+
+   注意事項:
+   - explainA-Dは必ず4つ全て揃えること
+   - パイプ文字 | は使用禁止（表の区切りなので）
+   - 改行は半角スペースに置き換え
+   - 推測・不明・?は記載しない
+
+   出力形式:
+   Google Docs上のMarkdown表形式で、1行ずつ追加してください。
+   ────────────────────────────────────────────────
+
+4. Claude for Chromeが収集を完了したら品質確認
+   ✅ 30行全て揃っているか
+   ✅ explainA-Dが全て埋まっているか
+   ✅ 判定（適当/不適当）が明記されているか
+   ✅ 空欄・「不明」・「?」がないか
+
+5. 収集完了後、Google DocsをWord形式でダウンロード
+   ファイル名: 「doboku説明文収集_残り30問_2026-02-16.docx」
+   保存先: C:\Users\masam\Downloads\
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【統合手順（Claude Code側）】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+Claude for Chromeでの収集完了後、Claude Codeで以下の手順を実行します。
+
+■ ステップ1: 収集データの統合
+
+1-1. Wordドキュメントの配置確認
+     既存: C:\Users\masam\Downloads\無題のドキュメント (2).docx（37問）
+     新規: C:\Users\masam\Downloads\doboku説明文収集_残り30問_2026-02-16.docx（30問）
+     既存JSON: C:/Users/masam/doboku_explanations.json（21問）
+
+1-2. 統合スクリプト実行
+     cd "C:/ProgramData/Generative AI/Github/doboku-14w-training/tools"
+     python merge_explanations_from_docx.py
+
+     → 自動でバックアップ作成（questionbank_drive_import_backup_{timestamp}.csv）
+     → 既存CSVと新規データをマージ
+     → 重複チェック・データ検証
+     → questionbank_drive_import.csvを更新
+
+1-3. 統合結果の確認
+     - 統合件数: 682問中、説明文あり: ???問 → ???問（+30問）
+     - カバレッジ: ??% → ??%
+     - エラー: 0件
+
+■ ステップ2: Google Sheetsインポート★手動作業必須★
+
+2-1. スプレッドシートを開く
+     https://docs.google.com/spreadsheets/d/1jj3AgZR2jAbgUIPtFRtjSfO0R0u5K_fiZyYQMwhEbM0/edit
+
+2-2. QuestionBankシートを選択
+
+2-3. ファイル → インポート → アップロード
+     ファイル選択: C:\ProgramData\Generative AI\Github\doboku-14w-training\tools\questionbank_drive_import.csv
+
+2-4. インポート設定
+     インポート場所: 現在のシートを置換
+     区切り文字の種類: カンマ
+     ✅ テキストを数値、日付、数式に変換する: OFF（重要！）
+
+2-5. データをインポート → 完了
+
+■ ステップ3: Webアプリ動作確認
+
+3-1. Webアプリを開く
+     https://script.google.com/macros/s/AKfycbwlxmfYWUkdEcYT.../exec
+
+3-2. 確認項目
+     ✅ 問題数: 682問が表示される
+     ✅ 説明文: 新規収集した30問の説明が表示される
+     ✅ フォーマット: 日本語番号表示（第1問、第2問...）
+     ✅ テキスト色: #555の読みやすい色
+     ✅ カテゴリタグ: 正しく表示される
+
+3-3. 問題なければ完了！
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【注意事項】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+■ 収集時の注意
+
+1. 選択肢番号の対応確認
+   過去問サイトの選択肢1 → explainA
+   過去問サイトの選択肢2 → explainB
+   過去問サイトの選択肢3 → explainC
+   過去問サイトの選択肢4 → explainD
+
+2. 判定の明記（必須）
+   「適当です」「不適当です」「誤りです」「正しいです」等を必ず含める
+
+3. 特殊文字の扱い
+   ❌ パイプ文字 | は表の区切りなので、説明文内では使用しない
+   ✅ 改行は半角スペースに置き換え
+   ✅ 全角・半角は統一不要（統合スクリプトで自動修正）
+
+4. 品質確認
+   各問題で必ずexplainA-Dの4つ全てが揃っているか確認
+   空欄・「不明」・「?」・推測は不可
+
+5. タイムアウト対策
+   Claude Codeでの自動収集はタイムアウトエラー（30秒）が発生したため、
+   Claude for Chromeでの手動収集を推奨
+
+■ トラブルシューティング
+
+▶ サイトにアクセスできない場合
+  - ブラウザのキャッシュをクリア
+  - シークレットモードで試す
+  - 時間を置いて再試行（サイト側の負荷軽減のため）
+
+▶ 解説が存在しない場合
+  R5gakkaA-057は原本欠番のため、サイトにもない可能性あり
+  → status列に「❌原本欠番」と記載
+
+▶ 統合スクリプトエラーが出る場合
+  - Wordドキュメントの表形式が正しいか確認（パイプ文字 | 区切り）
+  - UTF-8エンコーディングを確認
+  - バックアップから復元してやり直し
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【期待される成果】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+■ 今回の30問収集完了後
+
+現在の説明文カバレッジ: 546/682問 (80.1%)
+収集後の予想カバレッジ: 576/682問 (84.5%) (+4.4%)
+
+説明文完全欠落問題: 現在32問 → 収集後2問のみ（R5gakkaA-057 + 原本欠番1問）
+
+■ 今後の改善可能性（オプション）
+
+優先度2タスク: 統合解説のみの139問
+- R1gakkaA: 12問（050-061）
+- R2gakkaA: 追加24問（022, 028, 033-041）
+- R2gakkaB: 29問（001-035）
+- R3gakkaA: 45問（001-061）
+- R3gakkaB: 27問（001-035）
+- その他: 2問
+
+上記を全て収集完了すれば:
+カバレッジ: 84.5% → 95.9% (+11.4%)
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【関連ファイル】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+プロジェクトルート:
+  C:/ProgramData/Generative AI/Github/doboku-14w-training/
+
+CSVファイル:
+  tools/questionbank_drive_import.csv（682問、本番データ）
+  tools/questionbank_drive_import_backup_*.csv（バックアップ）
+
+統合スクリプト:
+  tools/merge_explanations_from_docx.py
+  tools/upload_to_gas.py（Google Apps Scriptへのアップロード用）
+
+ドキュメント:
+  docs/ai_handoff.md（プロジェクト全体の引き継ぎ情報）
+  tools/OCR_FIX_FINAL_REPORT.md（OCR誤変換修正レポート）
+
+収集データ:
+  C:/Users/masam/doboku_explanations.json（21問、JSON形式）
+  C:\Users\masam\Downloads\無題のドキュメント (2).docx（37問、Word形式）
+  C:\Users\masam\Downloads\doboku説明文収集_残り30問_2026-02-16.docx（30問、今回作成予定）
+
+Google Apps Script:
+  スプレッドシートID: 1jj3AgZR2jAbgUIPtFRtjSfO0R0u5K_fiZyYQMwhEbM0
+  Webアプリ: https://script.google.com/macros/s/AKfycbwlxmfYWUkdEcYT.../exec
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+【このドキュメントの使い方】
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+
+1. Google Docsにこのテキスト全体をコピー＆ペースト
+2. 必要な箇所（収集対象リスト、プロンプト等）を参照しながら作業
+3. 収集完了後、「統合手順」セクションをClaude Codeに共有
+
+━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━━
+以上
