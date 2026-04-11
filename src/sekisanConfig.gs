@@ -1,14 +1,14 @@
-var APP_NAME_ = 'sekisan-training';
-var APP_TITLE_ = '建築積算士 一次試験 過去問演習';
-var APP_SHORT_TITLE_ = '建築積算士 一次試験';
-var APP_DIAG_KEY_ = 'sekisan2026';
-var APP_DB_PREFIX_ = 'SekisanTraining_DB_';
-var APP_IMAGE_FOLDER_NAME_ = 'SekisanTraining_QuestionBankImages';
-var APP_IMPORT_FOLDER_NAME_ = 'SekisanTraining_Imports';
-var SEKISAN_LOCAL_STORAGE_PREFIX_ = 'sekisanTraining_';
+var APP_NAME_ = 'takken-training';
+var APP_TITLE_ = '宅地建物取引士（宅建）過去問演習';
+var APP_SHORT_TITLE_ = '宅建 過去問演習';
+var APP_DIAG_KEY_ = 'takken2026';
+var APP_DB_PREFIX_ = 'TakkenTraining_DB_';
+var APP_IMAGE_FOLDER_NAME_ = 'TakkenTraining_QuestionBankImages';
+var APP_IMPORT_FOLDER_NAME_ = 'TakkenTraining_Imports';
+var SEKISAN_LOCAL_STORAGE_PREFIX_ = 'takkenTraining_';
 var SEKISAN_YEARS_ = ['H25', 'H26', 'H27', 'H28', 'H29', 'H30', 'R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7'];
 var SEKISAN_MOCK_PARTS_ = ['FULL', 'I', 'II'];
-var SEKISAN_GITHUB_IMAGE_BASE_URL_ = 'https://raw.githubusercontent.com/bubbleberry247/sekisan-training/main/images/sekisan/';
+var SEKISAN_GITHUB_IMAGE_BASE_URL_ = 'https://raw.githubusercontent.com/bubbleberry247/takken-training/main/images/takken/';
 
 function formatSekisanYear_(code) {
   var text = String(code || '').toUpperCase();
@@ -24,8 +24,8 @@ function formatSekisanYear_(code) {
 
 function sekisanSectionLabelByNo_(no) {
   var n = Number(no || 0);
-  if (n >= 1 && n <= 25) return 'Ⅰ建築一般';
-  if (n >= 26 && n <= 50) return 'Ⅱ数量積算';
+  if (n >= 1 && n <= 25) return '権利関係';
+  if (n >= 26 && n <= 50) return '法令上の制限';
   return '';
 }
 
@@ -38,16 +38,16 @@ function sekisanSectionFromNo_(no) {
 
 function sekisanSegmentLabel_(segmentId) {
   var seg = String(segmentId || '').trim();
-  if (seg === 'sekisan_I') return 'Ⅰ建築一般';
-  if (seg === 'sekisan_II') return 'Ⅱ数量積算';
+  if (seg === 'sekisan_I') return '権利関係';
+  if (seg === 'sekisan_II') return '法令上の制限';
   return seg;
 }
 
 function sekisanMockPartLabel_(part) {
   var p = String(part || 'FULL').toUpperCase();
-  if (p === 'I') return 'Ⅰ建築一般';
-  if (p === 'II') return 'Ⅱ数量積算';
-  return '本試験';
+  if (p === 'I') return '権利関係';
+  if (p === 'II') return '法令上の制限';
+  return '本試験（50問）';
 }
 
 function buildSekisanTestIndex_(year, part) {
