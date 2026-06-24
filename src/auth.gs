@@ -35,7 +35,7 @@ function apiLoginWithGoogle(idToken) {
 
     // 3. Client ID の検証（ConfigシートのGOOGLE_CLIENT_IDとaud が一致するか確認）
     var config = getConfigMap_();
-    var expectedClientId = getConfigValue_(config, 'GOOGLE_CLIENT_ID', '');
+    var expectedClientId = String(getConfigValue_(config, 'GOOGLE_CLIENT_ID', '') || '').trim();
     if (expectedClientId && payload.aud !== expectedClientId) {
       return { _error: true, message: 'Client IDが一致しません' };
     }
@@ -76,7 +76,7 @@ function apiLoginWithGoogle(idToken) {
 function apiGetGoogleClientId() {
   try {
     var config = getConfigMap_();
-    return getConfigValue_(config, 'GOOGLE_CLIENT_ID', '');
+    return String(getConfigValue_(config, 'GOOGLE_CLIENT_ID', '') || '').trim();
   } catch (e) {
     return '';
   }
@@ -107,9 +107,28 @@ function getAppExecUrl_() {
   return configuredUrl || '';
 }
 
+function createIndexHtmlOutput_(title, serverAuthResult) {
+  var template = HtmlService.createTemplateFromFile('index');
+  template.serverAuthResult = toSafeTemplateJson_(serverAuthResult || null);
+  template.appExecUrlJson = toSafeTemplateJson_(getAppExecUrl_());
+  return template.evaluate()
+    .setTitle(title || APP_TITLE_)
+    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
+    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+}
+
+function toSafeTemplateJson_(value) {
+  return JSON.stringify(value)
+    .replace(/</g, String.fromCharCode(92) + 'u003c')
+    .replace(/>/g, String.fromCharCode(92) + 'u003e')
+    .replace(/&/g, String.fromCharCode(92) + 'u0026')
+    .replace(/\u2028/g, String.fromCharCode(92) + 'u2028')
+    .replace(/\u2029/g, String.fromCharCode(92) + 'u2029');
+}
+
 function getOAuthStartUrl_() {
   var config = getConfigMap_();
-  var clientId = getConfigValue_(config, 'GOOGLE_CLIENT_ID', '');
+  var clientId = String(getConfigValue_(config, 'GOOGLE_CLIENT_ID', '') || '').trim();
   var redirectUri = getAppExecUrl_();
   var state = Utilities.getUuid();
   var nonce = Utilities.getUuid();
@@ -119,15 +138,43 @@ function getOAuthStartUrl_() {
     + 'client_id=' + encodeURIComponent(clientId)
     + '&redirect_uri=' + encodeURIComponent(redirectUri)
     + '&response_type=code'
-    + '&scope=' + encodeURIComponent('openid email profile')
+    + '&scope=' + encodeURIComponent('openid email')
     + '&state=' + encodeURIComponent(state)
     + '&nonce=' + encodeURIComponent(nonce)
     + '&prompt=select_account';
 }
 
 function generateOAuthStartPage_() {
-  var authUrl = getOAuthStartUrl_();
   var execUrl = getAppExecUrl_();
+  var config = getConfigMap_();
+  var clientId = String(getConfigValue_(config, 'GOOGLE_CLIENT_ID', '') || '').trim();
+  var clientSecret = PropertiesService.getScriptProperties().getProperty('GOOGLE_CLIENT_SECRET');
+  if (!clientId || !clientSecret) {
+    logOAuthError_('config_missing', 'clientId=' + (clientId ? 'SET' : 'MISSING') + ' clientSecret=' + (clientSecret ? 'SET' : 'MISSING'));
+    var missing = [];
+    if (!clientId) missing.push('GOOGLE_CLIENT_ID');
+    if (!clientSecret) missing.push('GOOGLE_CLIENT_SECRET');
+    var errorHtml =
+      '<!DOCTYPE html><html><head><meta charset="utf-8">' +
+      '<meta name="viewport" content="width=device-width,initial-scale=1">' +
+      '<title>ログイン設定エラー</title></head>' +
+      '<body style="display:flex;justify-content:center;align-items:center;' +
+      'min-height:80vh;font-family:sans-serif;margin:0;padding:16px">' +
+      '<div style="text-align:center;max-width:420px">' +
+        '<div style="font-size:2.5rem;margin-bottom:16px">⚠</div>' +
+        '<div style="font-size:1.1rem;font-weight:700;margin-bottom:8px">' +
+          'ログイン設定が未完了です</div>' +
+        '<div style="font-size:0.85rem;color:#666;margin-bottom:20px;line-height:1.6">' +
+          '管理者に OAuth 設定の確認を依頼してください。<br>' +
+          '不足: ' + missing.join(', ') + '</div>' +
+        '<a href="' + execUrl + '" target="_top" ' +
+          'style="color:#2563eb;font-size:0.9rem;text-decoration:none">トップへ戻る</a>' +
+      '</div></body></html>';
+    return HtmlService.createHtmlOutput(errorHtml)
+      .setTitle('ログイン設定エラー')
+      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL);
+  }
+  var authUrl = getOAuthStartUrl_();
   var html =
     '<!DOCTYPE html><html><head><meta charset="utf-8">' +
     '<meta name="viewport" content="width=device-width,initial-scale=1">' +
@@ -174,18 +221,12 @@ function handleManualLogin_(email) {
     return errorPage_('このアカウントは登録されていません: ' + email);
   }
   var user = ensureUser_(email, email, access.displayName || email.split('@')[0]);
-  var template = HtmlService.createTemplateFromFile('index');
-  template.serverAuthResult = JSON.stringify({
+  return createIndexHtmlOutput_(APP_TITLE_, {
     userKey: user.userKey,
     displayName: access.displayName || user.displayName,
     email: email,
     role: access.role || 'user'
-  }).replace(/</g, String.fromCharCode(92) + 'u003c');
-  template.appExecUrl = getAppExecUrl_();
-  return template.evaluate()
-    .setTitle(APP_TITLE_)
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  });
 }
 
 function handleOAuthCallback_(code, state) {
@@ -198,13 +239,7 @@ function handleOAuthCallback_(code, state) {
       var wasDone = cache.get('oauth_done_' + state);
       if (wasDone) {
         logOAuthError_('state_consumed', 'reload after success: ' + state);
-        var template = HtmlService.createTemplateFromFile('index');
-        template.serverAuthResult = '';
-        template.appExecUrl = getAppExecUrl_();
-        return template.evaluate()
-          .setTitle(APP_TITLE_)
-          .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-          .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+        return createIndexHtmlOutput_(APP_TITLE_);
       }
       logOAuthError_('state_invalid', 'state not found in cache: ' + state);
       return errorPage_('認証エラー: リクエストが無効または期限切れです');
@@ -212,7 +247,7 @@ function handleOAuthCallback_(code, state) {
     cache.remove('oauth_state_' + state);
 
     var config = getConfigMap_();
-    var clientId = getConfigValue_(config, 'GOOGLE_CLIENT_ID', '');
+    var clientId = String(getConfigValue_(config, 'GOOGLE_CLIENT_ID', '') || '').trim();
     var clientSecret = PropertiesService.getScriptProperties().getProperty('GOOGLE_CLIENT_SECRET');
     var redirectUri = getAppExecUrl_();
 
@@ -258,18 +293,12 @@ function handleOAuthCallback_(code, state) {
       saveGoogleSub_(loginResult.userKey, idPayload.sub);
     }
 
-    var template = HtmlService.createTemplateFromFile('index');
-    template.serverAuthResult = JSON.stringify({
+    return createIndexHtmlOutput_(APP_TITLE_, {
       userKey: loginResult.userKey,
       displayName: loginResult.displayName,
       email: loginResult.email,
       role: loginResult.role
-    }).replace(/</g, String.fromCharCode(92) + 'u003c');
-    template.appExecUrl = getAppExecUrl_();
-    return template.evaluate()
-      .setTitle(APP_TITLE_)
-      .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-      .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+    });
   } catch (e) {
     logOAuthError_('callback_error', String(e.message || e));
     return errorPage_('認証処理中にエラーが発生しました。しばらくしてから再度お試しください。');
@@ -322,7 +351,7 @@ function diagOAuth_() {
   var config = getCachedConfig_();
   var props = PropertiesService.getScriptProperties();
 
-  var clientId = getConfigValue_(config, 'GOOGLE_CLIENT_ID', '');
+  var clientId = String(getConfigValue_(config, 'GOOGLE_CLIENT_ID', '') || '').trim();
   var clientSecret = props.getProperty('GOOGLE_CLIENT_SECRET');
   var appExecUrl = getConfigValue_(config, 'APP_EXEC_URL', '');
   var resolvedAppExecUrl = getAppExecUrl_();
@@ -354,7 +383,10 @@ function diagOAuth_() {
 
   // Client IDのフォーマットチェック
   if (clientId) {
-    results.validation.CLIENT_ID_FORMAT = clientId.endsWith('.apps.googleusercontent.com') ? 'OK' : 'INVALID FORMAT';
+    var isClassicClient = /\.apps\.googleusercontent\.com$/i.test(clientId);
+    var isIamClient = clientId.split('-').length === 5 && clientId.length >= 32;
+    var clientIdKind = isClassicClient ? 'classic web client' : (isIamClient ? 'IAM OAuth client UUID' : 'unknown');
+    results.validation.CLIENT_ID_FORMAT = (isClassicClient || isIamClient) ? 'OK (' + clientIdKind + ')' : 'INVALID FORMAT';
   }
 
   // AuthLog 最新10件

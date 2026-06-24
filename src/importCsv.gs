@@ -258,8 +258,8 @@ function getOrCreateImportFolder_() {
 function testImportQuestionBankFromCsv() {
   // サンプルCSV（最初の3行のみ）
   var sampleCsv = '﻿qId,segmentId,type,difficulty,tag1,tag2,tag3,lawTag,revisionFlag,conceptId,variantGroupId,source_ref,imageUrl,choiceImageUrl,stem,choiceA,choiceB,choiceC,choiceD,choiceE,explainA,explainB,explainC,explainD,explainE,correct,explainShort,explainLong,status,updatedAt\n' +
-    'H25sekisan-001,sekisan_I,knowledge,3,Ⅰ建築一般,H25,,,0,,,BSIJ公式 H25,,,"建築積算業務に関する次の記述のうち、最も適切なものはどれか。","設計図書に基づいて数量や工事費を整理する。","図面を見ずに数量を決める。","毎回必ず複数解がある。","積算では仕様書を見ない。",,,,,,,A,"積算は設計図書を根拠に数量や工事費を整理する。","設計図書や仕様書を確認して数量・工事費を根拠立てて整理する。",published,2026-04-11T00:00:00\n' +
-    'H25sekisan-026,sekisan_II,knowledge,3,Ⅱ数量積算,H25,,,0,,,BSIJ公式 H25,images/sekisan/sekisan_H25_026.png,,"数量積算の次の記述のうち、最も適切なものはどれか。","図面寸法と計測条件を確認して数量を算出する。","単位は問題ごとに自由に変えてよい。","数量積算では図表は使わない。","年度が違うと集計条件は確認しない。",,,,,,,A,"数量積算では図面寸法と計測条件の確認が重要である。","図面・仕様・計測条件を確認し、単位と集計条件を揃えて数量を算出する。",published,2026-04-11T00:00:00';
+    'H28takken-001,takken_rights,knowledge,3,権利関係,H28,,,0,,H28takken-001,TAKKEN-SAMPLE,,,"宅建試験の権利関係に関する次の記述のうち最も適切なものはどれか。","民法などの条文と判例を根拠に判断する。","宅建業法だけを見ればよい。","年度別演習は不要である。","権利関係は出題されない。",,,,,,,A,"権利関係は民法や判例を根拠に判断する。","権利関係では条文と判例をセットで確認する。",published,2026-04-11T00:00:00\n' +
+    'H28takken-026,takken_business,knowledge,3,宅地建物取引業法等,H28,,,0,,H28takken-026,TAKKEN-SAMPLE,,,"宅地建物取引業法に関する次の記述のうち最も適切なものはどれか。","重要事項説明や37条書面を区別して整理する。","宅建業法は出題数が少ない。","広告規制は対象外である。","免許制度は学習不要である。",,,,,,,A,"宅建業法は手続と書面を区別する。","宅建業法は得点源になりやすいため手続ごとに整理する。",published,2026-04-11T00:00:00';
 
   Logger.log('Testing CSV import with sample data...');
   var result = importQuestionBankFromCsv(sampleCsv);

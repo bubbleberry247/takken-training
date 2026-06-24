@@ -27,7 +27,59 @@ function isClientAuthErrorMessage_(message) {
     || msg.indexOf('permission') >= 0
     || msg.indexOf('not logged in') >= 0
     || msg.indexOf('not authorized') >= 0
+    || msg.indexOf('登録されていません') >= 0
+    || msg.indexOf('無効') >= 0
     || msg.indexOf('Client ID') >= 0;
+}
+
+function buildTeamProgressSummary_(accessRows, userRows, allAttempts, totalTests, tz, viewerAccess) {
+  var team = [];
+  var warnings = [];
+  var userByEmail = {};
+  var viewer = viewerAccess || {};
+  var viewerRole = String(viewer.role || 'user').toLowerCase();
+  var viewerEmail = String(viewer.email || '').toLowerCase();
+
+  userRows.forEach(function(r) {
+    var em = String(r.email || '').toLowerCase();
+    if (em) userByEmail[em] = r;
+  });
+
+  accessRows.forEach(function(ar) {
+    var em = String(ar.email || '').toLowerCase();
+    if (!em) return;
+    if (viewerEmail && em === viewerEmail) return;
+    if (normalizeUserAccessBoolean_(ar.active, true) === 'false') return;
+    if (normalizeUserAccessBoolean_(ar.showInDashboard, true) === 'false') return;
+    if (viewerRole === 'manager' && String(ar.managerEmail || '').toLowerCase() !== viewerEmail) return;
+    if (viewerRole !== 'admin' && viewerRole !== 'manager') return;
+
+    var userRec = userByEmail[em] || {};
+    var uk = String(userRec.userKey || '');
+    var displayName = ar.displayName || userRec.displayName || em;
+    var userAttempts = uk ? allAttempts.filter(function(a){ return String(a.userKey || '') === uk; }) : [];
+    var summary = null;
+    var warning = '';
+
+    try {
+      summary = buildProgress_(userAttempts, totalTests, tz, 8);
+    } catch (teamErr) {
+      warning = String(teamErr && teamErr.message ? teamErr.message : teamErr);
+      Logger.log('apiGetHome TEAM WARN: ' + em + ': ' + warning);
+      warnings.push({ email: em, message: warning });
+      summary = buildProgress_([], totalTests, tz, 8);
+    }
+
+    var member = {
+      email: em,
+      displayName: displayName,
+      progress: summary
+    };
+    if (warning) member.warning = warning;
+    team.push(member);
+  });
+
+  return { team: team, warnings: warnings };
 }
 
 var AUTH_LOG_SHEET_NAME_ = 'AuthLog';
@@ -145,7 +197,7 @@ function apiGetHome(clientUserKey) {
     var access = requireActiveUser_(userCtx);
     var user = ensureUser_(userCtx.userKey, userCtx.email, userCtx.displayName);
 
-    var startDate = getConfigValue_(config, 'PROGRAM_START_DATE', '2026-04-11');
+    var startDate = getConfigValue_(config, 'PROGRAM_START_DATE', '2026-07-01');
     var weeks = weeksSinceStart_(startDate, tz);
     var plans = getTestPlanRows_();
 
@@ -224,28 +276,19 @@ function apiGetHome(clientUserKey) {
     var progress = buildProgress_(attempts, plans.length, tz, 8);
 
     var team = [];
+    var teamWarnings = [];
     if (access.role === 'manager' || access.role === 'admin') {
-      // admin/manager: build team from UserAccess (all intended members) joined with Users (for userKey/displayName)
-      var selfEmail = String(userCtx.email || '').toLowerCase();
-      var accessRows = readRecords_(getSheet_(SHEETS.UserAccess));
-      var userRows2 = readRecords_(getSheet_(SHEETS.Users));
-      var userByEmail = {};
-      userRows2.forEach(function(r) {
-        var em = String(r.email || '').toLowerCase();
-        if (em) userByEmail[em] = r;
-      });
-      accessRows.forEach(function(ar) {
-        var em = String(ar.email || '').toLowerCase();
-        if (!em) return;
-        if (em === selfEmail) return; // exclude self
-        if (String(ar.active || '').toLowerCase() === 'false') return; // skip inactive
-        var userRec = userByEmail[em] || {};
-        var uk = String(userRec.userKey || '');
-        var displayName = userRec.displayName || em;
-        var userAttempts = uk ? allAttempts.filter(function(a){ return String(a.userKey || '') === uk; }) : [];
-        var summary = buildProgress_(userAttempts, plans.length, tz, 8);
-        team.push({ email: em, displayName: displayName, progress: summary });
-      });
+      try {
+        var accessRows = readRecords_(getUserAccessSheet_());
+        var userRows2 = readRecords_(getSheet_(SHEETS.Users));
+        var teamResult = buildTeamProgressSummary_(accessRows, userRows2, allAttempts, plans.length, tz, access);
+        team = teamResult.team;
+        teamWarnings = teamResult.warnings;
+      } catch (teamErrOuter) {
+        var teamMsg = String(teamErrOuter && teamErrOuter.message ? teamErrOuter.message : teamErrOuter);
+        Logger.log('apiGetHome TEAM OUTER WARN: ' + teamMsg);
+        teamWarnings.push({ email: '', message: teamMsg });
+      }
     }
 
     // Use optimized functions with pre-read data
@@ -266,6 +309,7 @@ function apiGetHome(clientUserKey) {
       scoreHistory: scoreHistory,
       auth: access,
       team: team,
+      teamWarnings: teamWarnings,
       fieldStats: fieldStats
     });
   } catch (e) {
@@ -316,7 +360,7 @@ function apiStartTest(testIndex, forceNew, clientUserKey) {
   try {
     var config = getConfigMap_();
     var tz = getConfigValue_(config, 'TIMEZONE', 'Asia/Tokyo');
-    var weeks = weeksSinceStart_(getConfigValue_(config, 'PROGRAM_START_DATE', '2026-04-11'), tz);
+    var weeks = weeksSinceStart_(getConfigValue_(config, 'PROGRAM_START_DATE', '2026-07-01'), tz);
     var plan = getTestPlanByIndex_(testIndex);
     if (!plan) return { _error: true, message: 'テストプラン(testIndex=' + testIndex + ')が見つかりません' };
 
@@ -596,7 +640,7 @@ function apiSubmitTest(payload) {
       var ids = answers.map(function(a){ return a.qId; });
       getQuestionsByIds_(ids).forEach(function(q){ qMap[q.qId] = q; });
     } else if (attempt.mode === 'mock') {
-      var mockMatch = String(testIndex).match(/^((?:H|R)\d+)sekisan(?:_(I|II))?$/i);
+      var mockMatch = String(testIndex).match(/^((?:H|R)\d+[A-Z]?)(?:takken|sekisan)(?:_([A-Z]+))?$/i);
       var mockYear = mockMatch ? String(mockMatch[1]).toUpperCase() : String(testIndex || '').toUpperCase();
       var mockPart = mockMatch && mockMatch[2] ? String(mockMatch[2]).toUpperCase() : 'FULL';
       var mockQIds = getMockExamQuestions_(mockYear, mockPart);
@@ -940,7 +984,7 @@ function adminE2EBootstrap_() {
     setConfigValue_('SHARED_TESTSET_MODE', 'ON');
 
     updateTestPlanRow_(1, {
-      targetSegments: 'sekisan_I',
+      targetSegments: 'takken_rights',
       questionsPerTest: 3,
       abilityCount: 0,
       revisionMinCount: 0,
@@ -949,23 +993,23 @@ function adminE2EBootstrap_() {
 
     var nowStr = formatDateTime_(now, tz);
     var q1 = {
-      qId: 'QSEK-001',
-      segmentId: 'sekisan_I',
+      qId: 'QTAK-001',
+      segmentId: 'takken_rights',
       type: 'knowledge',
       difficulty: 2,
-      tag1: 'Ⅰ建築一般',
-      tag2: 'H25',
+      tag1: '権利関係',
+      tag2: 'H28',
       tag3: '',
       lawTag: '',
       revisionFlag: 0,
       conceptId: '',
-      variantGroupId: 'SEK-E2E',
-      source_ref: 'SEKISAN-E2E-01',
-      stem: '建築積算業務に関する次の記述のうち、最も適切なものはどれか。',
-      choiceA: '設計図書に基づいて数量や工事費を整理する。',
-      choiceB: '図面を見ずに数量を決める。',
-      choiceC: '毎回必ず複数解がある。',
-      choiceD: '積算では仕様書を見ない。',
+      variantGroupId: 'TAK-E2E',
+      source_ref: 'TAKKEN-E2E-01',
+      stem: '宅建試験の権利関係に関する次の記述のうち、最も適切なものはどれか。',
+      choiceA: '民法や借地借家法などの基本知識を根拠に判断する。',
+      choiceB: '宅建業法だけを見れば必ず判断できる。',
+      choiceC: '年度が違う問題は復習しなくてよい。',
+      choiceD: '判例知識は出題されない。',
       choiceE: '',
       explainA: '',
       explainB: '',
@@ -973,61 +1017,30 @@ function adminE2EBootstrap_() {
       explainD: '',
       explainE: '',
       correct: 'A',
-      explainShort: '積算は設計図書を根拠に数量や工事費を整理する業務である。',
-      explainLong: '建築積算では、設計図書や仕様書を基に数量や工事費を根拠立てて整理する。',
+      explainShort: '権利関係は民法・借地借家法・不動産登記法などを根拠に判断する。',
+      explainLong: '宅建試験では、権利関係の条文と判例をセットで確認することが重要である。',
       status: 'published',
       updatedAt: nowStr
     };
 
     var q2 = {
-      qId: 'QSEK-002',
-      segmentId: 'sekisan_I',
+      qId: 'QTAK-002',
+      segmentId: 'takken_law',
       type: 'knowledge',
       difficulty: 2,
-      tag1: 'Ⅰ建築一般',
-      tag2: 'H25',
+      tag1: '法令上の制限',
+      tag2: 'H28',
       tag3: '',
       lawTag: '',
       revisionFlag: 0,
       conceptId: '',
-      variantGroupId: 'SEK-E2E',
-      source_ref: 'SEKISAN-E2E-02',
-      stem: '設計図書の読み取りに関する次の記述のうち、最も適切なものはどれか。',
-      choiceA: '図面と仕様書に矛盾があっても必ず図面だけを見る。',
-      choiceB: '設計図書の優先順位を確認して判断する。',
-      choiceC: '図面にない数量はすべて推定しない。',
-      choiceD: '仕様書は積算では使わない。',
-      choiceE: '',
-      explainA: '',
-      explainB: '',
-      explainC: '',
-      explainD: '',
-      explainE: '',
-      correct: 'B',
-      explainShort: '設計図書の優先順位を確認して整合的に判断する。',
-      explainLong: '質疑回答書や特記仕様書を含む設計図書の優先順位を踏まえて数量や工法を判断する。',
-      status: 'published',
-      updatedAt: nowStr
-    };
-
-    var q3 = {
-      qId: 'QSEK-003',
-      segmentId: 'sekisan_II',
-      type: 'knowledge',
-      difficulty: 3,
-      tag1: 'Ⅱ数量積算',
-      tag2: 'H25',
-      tag3: '',
-      lawTag: '',
-      revisionFlag: 0,
-      conceptId: '',
-      variantGroupId: 'SEK-E2E',
-      source_ref: 'SEKISAN-E2E-03',
-      stem: '数量積算の次の記述のうち、最も適切なものはどれか。',
-      choiceA: '図面寸法と計測条件を確認して数量を算出する。',
-      choiceB: '単位は問題ごとに自由に変えてよい。',
-      choiceC: '数量積算では図表は使わない。',
-      choiceD: '年度が違うと集計条件は確認しない。',
+      variantGroupId: 'TAK-E2E',
+      source_ref: 'TAKKEN-E2E-02',
+      stem: '法令上の制限に関する次の記述のうち、最も適切なものはどれか。',
+      choiceA: '条文上の数字や例外規定を確認して判断する。',
+      choiceB: '都市計画法は宅建試験では出題されない。',
+      choiceC: '建築基準法の制限は暗記不要である。',
+      choiceD: '法令制限は毎年同じ問題だけが出る。',
       choiceE: '',
       explainA: '',
       explainB: '',
@@ -1035,8 +1048,39 @@ function adminE2EBootstrap_() {
       explainD: '',
       explainE: '',
       correct: 'A',
-      explainShort: '数量積算では図面寸法と計測条件の確認が重要である。',
-      explainLong: '図面・仕様・計測条件を確認し、単位と集計条件を揃えて数量を算出する。',
+      explainShort: '法令上の制限は数字と例外の確認が得点の鍵になる。',
+      explainLong: '都市計画法や建築基準法などでは、要件・数字・例外を整理して判断する。',
+      status: 'published',
+      updatedAt: nowStr
+    };
+
+    var q3 = {
+      qId: 'QTAK-003',
+      segmentId: 'takken_business',
+      type: 'knowledge',
+      difficulty: 3,
+      tag1: '宅地建物取引業法等',
+      tag2: 'H28',
+      tag3: '',
+      lawTag: '',
+      revisionFlag: 0,
+      conceptId: '',
+      variantGroupId: 'TAK-E2E',
+      source_ref: 'TAKKEN-E2E-03',
+      stem: '宅地建物取引業法に関する次の記述のうち、最も適切なものはどれか。',
+      choiceA: '重要事項説明や37条書面などの手続を区別して整理する。',
+      choiceB: '宅建業法は権利関係より出題数が少ない。',
+      choiceC: '広告規制は宅建業法の対象外である。',
+      choiceD: '免許制度は過去問演習では扱わない。',
+      choiceE: '',
+      explainA: '',
+      explainB: '',
+      explainC: '',
+      explainD: '',
+      explainE: '',
+      correct: 'A',
+      explainShort: '宅建業法は手続・書面・規制を区別して覚えると得点源になる。',
+      explainLong: '重要事項説明、37条書面、広告規制、免許制度などを論点ごとに整理する。',
       status: 'published',
       updatedAt: nowStr
     };
@@ -1087,7 +1131,7 @@ function apiAdminListUserAccess(clientUserKey) {
   __clientUserKey = clientUserKey || '';
   var userCtx = getUserContext_();
   requireAdmin_(userCtx);
-  return readRecords_(getUserAccessSheet_());
+  return toSerializable_(readRecords_(getUserAccessSheet_()));
 }
 
 function apiAdminUpsertUserAccess(payload, clientUserKey) {
@@ -1106,10 +1150,20 @@ function apiAdminUpsertUserAccess(payload, clientUserKey) {
       active: (item.active === false || String(item.active).toLowerCase() === 'false') ? 'false' : 'true',
       updatedAt: formatDateTime_(getNow_(), tz)
     };
+    if (item.hasOwnProperty('displayName')) {
+      row.displayName = String(item.displayName || '').trim();
+    }
+    if (item.hasOwnProperty('showInDashboard')) {
+      row.showInDashboard = normalizeUserAccessBoolean_(item.showInDashboard, true);
+    }
     upsertByKey_(SHEETS.UserAccess, 'email', row);
     updated += 1;
   });
   return { status: 'ok', updated: updated };
+}
+
+function normalizeUserAccessImportHeader_(value) {
+  return String(value || '').trim().toLowerCase().replace(/[^a-z0-9]/g, '');
 }
 
 function apiAdminImportUserAccessCsv_(csvText, clientUserKey) {
@@ -1121,17 +1175,31 @@ function apiAdminImportUserAccessCsv_(csvText, clientUserKey) {
   if (!rows || rows.length === 0) return { status: 'ok', updated: 0 };
 
   var startIdx = 0;
+  var headerMap = null;
   var header = rows[0].map(function(v){ return String(v || '').trim().toLowerCase(); });
-  if (header[0] === 'email') startIdx = 1;
+  if (header[0] === 'email') {
+    startIdx = 1;
+    headerMap = {};
+    header.forEach(function(name, idx) {
+      headerMap[normalizeUserAccessImportHeader_(name)] = idx;
+    });
+  }
+
+  function getCsvValue_(row, normalizedName, fallbackIndex) {
+    if (headerMap && headerMap.hasOwnProperty(normalizedName)) {
+      return row[headerMap[normalizedName]];
+    }
+    return fallbackIndex < row.length ? row[fallbackIndex] : '';
+  }
 
   var updated = 0;
   for (var i = startIdx; i < rows.length; i++) {
     var r = rows[i] || [];
-    var email = String(r[0] || '').trim();
+    var email = String(getCsvValue_(r, 'email', 0) || '').trim();
     if (!email) continue;
-    var role = String(r[1] || 'user').trim().toLowerCase();
-    var managerEmail = String(r[2] || '').trim();
-    var activeRaw = String(r[3] || 'true').trim().toLowerCase();
+    var role = String(getCsvValue_(r, 'role', 1) || 'user').trim().toLowerCase();
+    var managerEmail = String(getCsvValue_(r, 'manageremail', 2) || '').trim();
+    var activeRaw = String(getCsvValue_(r, 'active', 3) || 'true').trim().toLowerCase();
     var active = (activeRaw === 'false' || activeRaw === '0' || activeRaw === 'no') ? 'false' : 'true';
     var row = {
       email: email,
@@ -1140,10 +1208,20 @@ function apiAdminImportUserAccessCsv_(csvText, clientUserKey) {
       active: active,
       updatedAt: formatDateTime_(getNow_(), tz)
     };
+    if ((headerMap && headerMap.hasOwnProperty('showindashboard')) || (!headerMap && r.length > 4)) {
+      row.showInDashboard = normalizeUserAccessBoolean_(getCsvValue_(r, 'showindashboard', 4), true);
+    }
+    if ((headerMap && headerMap.hasOwnProperty('displayname')) || (!headerMap && r.length > 5)) {
+      row.displayName = String(getCsvValue_(r, 'displayname', 5) || '').trim();
+    }
     upsertByKey_(SHEETS.UserAccess, 'email', row);
     updated += 1;
   }
   return { status: 'ok', updated: updated };
+}
+
+function apiAdminImportUserAccessCsv(csvText, clientUserKey) {
+  return apiAdminImportUserAccessCsv_(csvText, clientUserKey);
 }
 
 function apiAdminMigrateQuestionBankSchema_(clientUserKey) {
@@ -1199,7 +1277,7 @@ function apiAdminLinkDriveImages_(folderId) {
     } else {
       // If QuestionBank was imported with GitHub raw URLs, clear them so that
       // questions without images don't keep broken links.
-      if (prev && (prev.indexOf('raw.githubusercontent.com') !== -1 || prev.indexOf('images/sekisan/') === 0)) {
+      if (prev && (prev.indexOf('raw.githubusercontent.com') !== -1 || prev.indexOf('images/takken/') === 0 || prev.indexOf('images/sekisan/') === 0)) {
         next = '';
         cleared++;
       }

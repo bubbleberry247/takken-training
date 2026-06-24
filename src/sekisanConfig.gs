@@ -6,12 +6,16 @@ var APP_DB_PREFIX_ = 'TakkenTraining_DB_';
 var APP_IMAGE_FOLDER_NAME_ = 'TakkenTraining_QuestionBankImages';
 var APP_IMPORT_FOLDER_NAME_ = 'TakkenTraining_Imports';
 var SEKISAN_LOCAL_STORAGE_PREFIX_ = 'takkenTraining_';
-var SEKISAN_YEARS_ = ['H25', 'H26', 'H27', 'H28', 'H29', 'H30', 'R1', 'R2', 'R3', 'R4', 'R5', 'R6', 'R7'];
-var SEKISAN_MOCK_PARTS_ = ['FULL', 'I', 'II'];
+var SEKISAN_YEARS_ = ['H28', 'H29', 'H30', 'R1', 'R2A', 'R2B', 'R3A', 'R3B', 'R4', 'R5', 'R6', 'R7'];
+var SEKISAN_MOCK_PARTS_ = ['FULL'];
 var SEKISAN_GITHUB_IMAGE_BASE_URL_ = 'https://raw.githubusercontent.com/bubbleberry247/takken-training/main/images/takken/';
 
 function formatSekisanYear_(code) {
   var text = String(code || '').toUpperCase();
+  var special = text.match(/^R(\d+)([AB])$/);
+  if (special) {
+    return '令和' + Number(special[1]) + '年' + (special[2] === 'A' ? '10月試験' : '12月試験');
+  }
   var m = text.match(/^H(\d+)$/);
   if (m) return '平成' + Number(m[1]) + '年';
   m = text.match(/^R(\d+)$/);
@@ -24,45 +28,55 @@ function formatSekisanYear_(code) {
 
 function sekisanSectionLabelByNo_(no) {
   var n = Number(no || 0);
-  if (n >= 1 && n <= 25) return '権利関係';
-  if (n >= 26 && n <= 50) return '法令上の制限';
+  if (n >= 1 && n <= 14) return '権利関係';
+  if (n >= 15 && n <= 22) return '法令上の制限';
+  if (n >= 23 && n <= 25) return '税・その他';
+  if (n >= 26 && n <= 45) return '宅地建物取引業法等';
+  if (n >= 46 && n <= 50) return '税・その他';
   return '';
 }
 
 function sekisanSectionFromNo_(no) {
   var n = Number(no || 0);
-  if (n >= 1 && n <= 25) return 'I';
-  if (n >= 26 && n <= 50) return 'II';
+  if (n >= 1 && n <= 14) return 'RIGHTS';
+  if (n >= 15 && n <= 22) return 'LAW';
+  if (n >= 23 && n <= 25) return 'OTHER';
+  if (n >= 26 && n <= 45) return 'BUSINESS';
+  if (n >= 46 && n <= 50) return 'OTHER';
   return 'FULL';
 }
 
 function sekisanSegmentLabel_(segmentId) {
   var seg = String(segmentId || '').trim();
-  if (seg === 'sekisan_I') return '権利関係';
-  if (seg === 'sekisan_II') return '法令上の制限';
+  if (seg === 'takken_rights') return '権利関係';
+  if (seg === 'takken_law') return '法令上の制限';
+  if (seg === 'takken_business') return '宅地建物取引業法等';
+  if (seg === 'takken_other') return '税・その他';
   return seg;
 }
 
 function sekisanMockPartLabel_(part) {
   var p = String(part || 'FULL').toUpperCase();
-  if (p === 'I') return '権利関係';
-  if (p === 'II') return '法令上の制限';
+  if (p === 'RIGHTS') return '権利関係';
+  if (p === 'LAW') return '法令上の制限';
+  if (p === 'BUSINESS') return '宅地建物取引業法等';
+  if (p === 'OTHER') return '税・その他';
   return '本試験（50問）';
 }
 
 function buildSekisanTestIndex_(year, part) {
   var y = String(year || '').toUpperCase();
   var p = String(part || 'FULL').toUpperCase();
-  return p === 'FULL' ? y + 'sekisan' : y + 'sekisan_' + p;
+  return p === 'FULL' ? y + 'takken' : y + 'takken_' + p;
 }
 
 function parseSekisanQId_(qId) {
   var text = String(qId || '').trim();
-  var match = text.match(/^((?:H|R)\d+)sekisan-(\d{3})$/);
+  var match = text.match(/^((?:H|R)\d+[A-Z]?)(?:takken|sekisan)-(\d{3})$/i);
   if (!match) return null;
   return {
     qId: text,
-    year: match[1],
+    year: match[1].toUpperCase(),
     number: match[2]
   };
 }
@@ -70,19 +84,21 @@ function parseSekisanQId_(qId) {
 function sekisanImageBaseNameFromQId_(qId) {
   var parsed = parseSekisanQId_(qId);
   if (!parsed) return '';
-  return 'sekisan_' + parsed.year + '_' + parsed.number;
+  return 'takken_' + parsed.year + '_' + parsed.number;
 }
 
 function sekisanQIdFromImageBaseName_(baseName) {
   var text = String(baseName || '').trim().replace(/\.[^.]+$/, '');
-  var parsed = text.match(/^sekisan_((?:H|R)\d+)_(\d{3})$/);
-  if (parsed) return parsed[1] + 'sekisan-' + parsed[2];
-  parsed = text.match(/^((?:H|R)\d+)sekisan_(\d{3})$/);
-  if (parsed) return parsed[1] + 'sekisan-' + parsed[2];
+  var parsed = text.match(/^takken_((?:H|R)\d+[A-Z]?)_(\d{3})$/i);
+  if (parsed) return parsed[1].toUpperCase() + 'takken-' + parsed[2];
+  parsed = text.match(/^((?:H|R)\d+[A-Z]?)takken_(\d{3})$/i);
+  if (parsed) return parsed[1].toUpperCase() + 'takken-' + parsed[2];
   return '';
 }
 
 function getSekisanGitHubImageBaseUrl_() {
   var props = PropertiesService.getScriptProperties();
-  return props.getProperty('SEKISAN_GITHUB_IMAGE_BASE_URL') || SEKISAN_GITHUB_IMAGE_BASE_URL_;
+  return props.getProperty('TAKKEN_GITHUB_IMAGE_BASE_URL') ||
+    props.getProperty('SEKISAN_GITHUB_IMAGE_BASE_URL') ||
+    SEKISAN_GITHUB_IMAGE_BASE_URL_;
 }

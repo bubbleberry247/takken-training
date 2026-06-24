@@ -10,7 +10,11 @@ function warmUp() {
 function doGet(e) {
   // 0. 診断エンドポイント（?diag=oauth）
   var diag = (e && e.parameter) ? e.parameter.diag : '';
-  if (diag === 'oauth') { return diagOAuth_(); }
+  if (diag === 'oauth') {
+    var oauthDiagAuthError = requireMaintenanceKey_(e);
+    if (oauthDiagAuthError) return oauthDiagAuthError;
+    return diagOAuth_();
+  }
 
   // 1. OAuth error（Google が error パラメータで返す場合）
   var oauthError = (e && e.parameter) ? e.parameter.error : '';
@@ -113,13 +117,25 @@ function doGet(e) {
       "warmUp": true, "checkUserAccess": true, "clearCache": true,
       "getImportFolderUrl": true, "clearTestSets": true,
       "clearStaleAttempts": true, "resetTestPlan": true,
-      "updateConfig": true, "linkImages": true, "linkGitHub": true,
+      "syncSchedule": true, "updateConfig": true, "linkImages": true, "linkGitHub": true,
       "importCsvFromFolder": true, "createImageFolder": true,
-      "setupDb": true, "autoTag": true
+      "setupDb": true, "autoTag": true, "syncDashboardRoster": true,
+      "syncRoster": true, "diagDashboard": true
     };
     if (!allowedActions[action]) {
       return ContentService.createTextOutput(JSON.stringify({ ok: false, error: "Action not allowed via GET: " + action }))
         .setMimeType(ContentService.MimeType.JSON);
+    }
+    var maintenanceActions = {
+      "setupDb": true, "clearStaleAttempts": true, "autoTag": true,
+      "createImageFolder": true, "clearTestSets": true, "clearCache": true,
+      "resetTestPlan": true, "syncSchedule": true, "linkGitHub": true, "updateConfig": true,
+      "linkImages": true, "importCsvFromFolder": true, "getImportFolderUrl": true,
+      "checkUserAccess": true, "diagWeekly": true
+    };
+    if (maintenanceActions[action]) {
+      var maintenanceAuthError = requireMaintenanceKey_(e);
+      if (maintenanceAuthError) return maintenanceAuthError;
     }
   }
 
@@ -149,6 +165,53 @@ function doGet(e) {
       .setMimeType(ContentService.MimeType.JSON);
   }
 
+  if (action === 'syncDashboardRoster' || action === 'syncRoster') {
+    var rosterKey = (e && e.parameter && e.parameter.key) ? e.parameter.key : '';
+    if (rosterKey !== APP_DIAG_KEY_) {
+      return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'invalid key' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    return ContentService.createTextOutput(JSON.stringify(syncDashboardRosterForCurrentApp_()))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+
+  if (action === 'diagDashboard') {
+    var dashboardKey = (e && e.parameter && e.parameter.key) ? e.parameter.key : '';
+    if (dashboardKey !== APP_DIAG_KEY_) {
+      return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'invalid key' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    try {
+      var accessSheet = getSheet_(SHEETS.UserAccess);
+      var accessRows = readRecords_(accessSheet);
+      var usersRows = readRecords_(getSheet_(SHEETS.Users));
+      var attemptRows = readRecords_(getSheet_(SHEETS.Attempts));
+      var planRows = getTestPlanRows_();
+      var accessHeaders = accessSheet.getRange(1, 1, 1, accessSheet.getLastColumn()).getValues()[0]
+        .map(function(h) { return String(h || '').trim(); });
+      var visibleRows = accessRows.filter(function(r) {
+        return String(r.email || '').trim()
+          && normalizeUserAccessBoolean_(r.active, true) !== 'false'
+          && normalizeUserAccessBoolean_(r.showInDashboard, true) !== 'false';
+      });
+      return ContentService.createTextOutput(JSON.stringify({
+        ok: true,
+        userAccess: {
+          totalRows: accessRows.length,
+          headers: accessHeaders,
+          hasShowInDashboard: accessHeaders.indexOf('showInDashboard') >= 0
+        },
+        users: { totalRows: usersRows.length },
+        attempts: { totalRows: attemptRows.length },
+        plans: { totalRows: planRows.length },
+        adminTeam: { visibleCount: visibleRows.length, warningCount: 0 }
+      })).setMimeType(ContentService.MimeType.JSON);
+    } catch (err) {
+      return ContentService.createTextOutput(JSON.stringify({ ok: false, error: err.message, stack: err.stack }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
   if (action === 'createImageFolder') {
     var folder = getOrCreateImageFolder_();
     return ContentService.createTextOutput(JSON.stringify({
@@ -167,8 +230,9 @@ function doGet(e) {
       var published = qb.filter(function(q){ return q.status === 'published'; });
       var valid = published.filter(function(q){ return isValidChoiceQuestion_(q); });
       var segs = plan ? String(plan.targetSegments || '').split(',').map(function(s){ return s.trim(); }).filter(Boolean) : [];
-      var segMatch = valid.filter(function(q){ return q.type === 'knowledge' && segs.indexOf(q.segmentId) >= 0; });
+      var segMatch = valid.filter(function(q){ return q.type === 'knowledge' && questionMatchesTargetSegments_(q, segs); });
       var abilityMatch = valid.filter(function(q){ return q.type === 'ability'; });
+      var generatedIds = plan ? generateTestSet_(plan, config) : [];
       // Type breakdown
       var types = {};
       valid.forEach(function(q){ var t = String(q.type || 'EMPTY'); types[t] = (types[t] || 0) + 1; });
@@ -187,6 +251,8 @@ function doGet(e) {
         plan: plan,
         totalQB: qb.length, published: published.length, valid: valid.length,
         targetSegs: segs, segMatch: segMatch.length, abilityMatch: abilityMatch.length,
+        generatedCount: generatedIds.length,
+        generatedSample: generatedIds.slice(0, 5),
         typeBreakdown: types, segIdBreakdown: segIds,
         invalidSamples: invalidSamples,
         testSetsCache: tsForIndex
@@ -219,7 +285,7 @@ function doGet(e) {
     clearAllCache_();
     var config = getConfigMap_();
     var tz = getConfigValue_(config, 'TIMEZONE', 'Asia/Tokyo');
-    var startDate = getConfigValue_(config, 'PROGRAM_START_DATE', '2026-04-11');
+    var startDate = getConfigValue_(config, 'PROGRAM_START_DATE', '2026-07-01');
     var weeks = weeksSinceStart_(startDate, tz);
     var now = new Date();
     var plans = getTestPlanRows_();
@@ -246,10 +312,24 @@ function doGet(e) {
       sh.clear();
       setHeaders_(sh, HEADERS[SHEETS.TestPlan14]);
       initTestPlan_();
-      return ContentService.createTextOutput(JSON.stringify({ ok: true, message: 'TestPlan14 reset to sekisan defaults (12 tests)' }))
+      return ContentService.createTextOutput(JSON.stringify({ ok: true, message: 'TestPlan14 reset to takken defaults (15 weekly tests)' }))
         .setMimeType(ContentService.MimeType.JSON);
     } catch (err) {
       return ContentService.createTextOutput(JSON.stringify({ ok: false, error: err.message }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+  }
+
+  if (action === 'syncSchedule') {
+    if (loginKey !== APP_DIAG_KEY_) {
+      return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'key required' }))
+        .setMimeType(ContentService.MimeType.JSON);
+    }
+    try {
+      return ContentService.createTextOutput(JSON.stringify(syncTakken2026Schedule_()))
+        .setMimeType(ContentService.MimeType.JSON);
+    } catch (errSync) {
+      return ContentService.createTextOutput(JSON.stringify({ ok: false, error: errSync.message, stack: errSync.stack }))
         .setMimeType(ContentService.MimeType.JSON);
     }
   }
@@ -365,6 +445,10 @@ function doGet(e) {
 
   if (action === 'diagStem') {
     var doFix = (e && e.parameter && e.parameter.fix === 'true');
+    if (doFix) {
+      var stemFixAuthError = requireMaintenanceKey_(e);
+      if (stemFixAuthError) return stemFixAuthError;
+    }
     try {
       var result = diagFixQuestionBank_(doFix);
       return ContentService.createTextOutput(JSON.stringify(result))
@@ -398,20 +482,22 @@ function doGet(e) {
   // Auto-setup on first access
   if (!getDbId_()) { setup_(); }
 
-  // 通常ページ表示（OAuth 用テンプレート変数を渡す）
-  var template = HtmlService.createTemplateFromFile('index');
-  template.serverAuthResult = '';
-  template.appExecUrl = getAppExecUrl_();
-  return template.evaluate()
-    .setTitle(APP_SHORT_TITLE_)
-    .setXFrameOptionsMode(HtmlService.XFrameOptionsMode.ALLOWALL)
-    .addMetaTag('viewport', 'width=device-width, initial-scale=1');
+  return createIndexHtmlOutput_(APP_SHORT_TITLE_);
 }
 
 function doPost(e) {
   try {
     var body = JSON.parse(e.postData.contents);
     var action = body.action || '';
+    var writePostActions = {
+      uploadImage: true,
+      updateQuestionBank: true,
+      importCsvText: true
+    };
+    if (writePostActions[action]) {
+      var postAuthError = requireMaintenanceKeyFromBody_(body);
+      if (postAuthError) return postAuthError;
+    }
 
     if (action === 'uploadImage') {
       var folderId = body.folderId;
@@ -491,21 +577,51 @@ function doPost(e) {
   }
 }
 
+function requireMaintenanceKey_(e) {
+  var supplied = '';
+  if (e && e.parameter) {
+    supplied = String(
+      e.parameter.maintenanceKey ||
+      e.parameter.adminKey ||
+      e.parameter.diagKey ||
+      e.parameter.key ||
+      ''
+    ).trim();
+  }
+  if (supplied !== APP_DIAG_KEY_) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'Unauthorized' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  return null;
+}
+
+function requireMaintenanceKeyFromBody_(body) {
+  var supplied = String(
+    (body && (body.maintenanceKey || body.adminKey || body.diagKey || body.key)) ||
+    ''
+  ).trim();
+  if (supplied !== APP_DIAG_KEY_) {
+    return ContentService.createTextOutput(JSON.stringify({ ok: false, error: 'Unauthorized' }))
+      .setMimeType(ContentService.MimeType.JSON);
+  }
+  return null;
+}
+
 function diagMock_() {
   var qb = readRecords_(getSheet_(SHEETS.QuestionBank));
   var attempts = readRecords_(getSheet_(SHEETS.Attempts));
 
   // Question counts by year/part
   var qCounts = {};
-  var sectionCounts = { I: 0, II: 0 };
+  var sectionCounts = {};
   var validCounts = {};
   qb.forEach(function(q) {
     var qId = String(q.qId || '');
-    var match = qId.match(/^((?:H|R)\d+)sekisan-(\d{3})$/);
+    var match = qId.match(/^((?:H|R)\d+[A-Z]?)(?:takken|sekisan)-(\d{3})$/i);
     if (!match) return;
     var key = match[1];
     var num = Number(match[2]);
-    var section = num <= 25 ? 'I' : 'II';
+    var section = sekisanSectionFromNo_(num);
     qCounts[key] = (qCounts[key] || 0) + 1;
     sectionCounts[section] = (sectionCounts[section] || 0) + 1;
     if (q.status === 'published' && isValidChoiceQuestion_(q)) {
@@ -514,7 +630,7 @@ function diagMock_() {
   });
 
   var r7Samples = qb.filter(function(q) {
-    return String(q.qId || '').indexOf('R7sekisan-') === 0;
+    return String(q.qId || '').indexOf('R7takken-') === 0;
   }).slice(0, 3).map(function(q) {
     return {
       qId: q.qId,
@@ -644,7 +760,7 @@ function linkGitHubImages_() {
 
     var imageName = sekisanImageBaseNameFromQId_(qId);
     if (!imageName) continue;
-    if (prev && prev.indexOf('images/sekisan/') !== 0 && prev.indexOf('raw.githubusercontent.com') === -1) continue;
+    if (prev && prev.indexOf('images/takken/') !== 0 && prev.indexOf('images/sekisan/') !== 0 && prev.indexOf('raw.githubusercontent.com') === -1) continue;
     var url = BASE + imageName + '.png';
     if (prev === url) continue;
     imgValues[i - 1][0] = url;
@@ -743,7 +859,7 @@ function normalizeSekisanImagePaths_() {
     var qId = String(data[i][qIdCol] || '');
     var imageName = sekisanImageBaseNameFromQId_(qId);
     if (!imageName) continue;
-    var normalized = 'images/sekisan/' + imageName + '.png';
+    var normalized = 'images/takken/' + imageName + '.png';
     if (String(data[i][imageCol] || '') === normalized) continue;
     sh.getRange(i + 1, imageCol + 1).setValue(normalized);
     updated++;
@@ -764,7 +880,7 @@ function autoTagQuestions_() {
   var updated = 0;
   for (var i = 1; i < data.length; i++) {
     var qId = String(data[i][qIdCol] || '');
-    var match = qId.match(/^((?:H|R)\d+)sekisan-(\d+)$/);
+    var match = qId.match(/^((?:H|R)\d+[A-Z]?)(?:takken|sekisan)-(\d+)$/i);
     if (!match) continue;
     var num = parseInt(match[2], 10);
     var tag = getTagByNumber_(num);
@@ -778,7 +894,10 @@ function autoTagQuestions_() {
 }
 
 function getTagByNumber_(num) {
-  if (num >= 1 && num <= 25) return 'Ⅰ建築一般';
-  if (num >= 26 && num <= 50) return 'Ⅱ数量積算';
+  if (num >= 1 && num <= 14) return '権利関係';
+  if (num >= 15 && num <= 22) return '法令上の制限';
+  if (num >= 23 && num <= 25) return '税・その他';
+  if (num >= 26 && num <= 45) return '宅地建物取引業法等';
+  if (num >= 46 && num <= 50) return '税・その他';
   return null;
 }

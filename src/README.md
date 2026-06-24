@@ -1,6 +1,6 @@
 # src/ — GAS ソースコード
 
-建築積算士 一次試験向けアプリの GAS 実装ファイル群です。
+宅地建物取引士（宅建）向けアプリの GAS 実装ファイル群です。
 
 [← リポジトリルートへ](../README.md)
 
@@ -25,8 +25,8 @@
 - `AttemptAnswers`
 - `TagStats`
 
-## sekisan 固有メモ
-- `QuestionBank.segmentId` は `sekisan_I` または `sekisan_II`
-- 模試の `testIndex` は `H25sekisan` / `R7sekisan` 形式
-- 画像ファイル名は `sekisan_<年度>_<問題番号>.png`
-- 画像付き問題の CSV プレースホルダは `images/sekisan/...`
+## takken 固有メモ
+- `QuestionBank.segmentId` は `takken_rights` / `takken_law` / `takken_business` / `takken_other`
+- 模試の `testIndex` は `H28takken` / `R2Atakken` / `R7takken` 形式
+- R2/R3 は追加回を含むため `R2A` / `R2B`、`R3A` / `R3B` として扱う
+- 画像ファイル名を使う場合は `takken_<年度>_<問題番号>.png`

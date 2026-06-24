@@ -20,8 +20,23 @@ function formatDate_(d, tz) {
   return Utilities.formatDate(d, tz, 'yyyy-MM-dd');
 }
 
-function parseDate_(str) {
-  return new Date(str);
+function dateOnlyUtcMs_(value, tz) {
+  var ymd = '';
+  if (value instanceof Date) {
+    ymd = Utilities.formatDate(value, tz || 'Asia/Tokyo', 'yyyy-MM-dd');
+  } else {
+    var raw = String(value || '').trim();
+    var match = raw.match(/^(\d{4})-(\d{1,2})-(\d{1,2})/);
+    if (match) {
+      ymd = match[1] + '-' + ('0' + match[2]).slice(-2) + '-' + ('0' + match[3]).slice(-2);
+    } else {
+      var parsed = new Date(raw);
+      if (!isNaN(parsed.getTime())) ymd = Utilities.formatDate(parsed, tz || 'Asia/Tokyo', 'yyyy-MM-dd');
+    }
+  }
+  if (!ymd) return NaN;
+  var parts = ymd.split('-').map(function(v) { return Number(v); });
+  return Date.UTC(parts[0], parts[1] - 1, parts[2]);
 }
 
 function parseUnlockWeek_(value) {
@@ -35,9 +50,10 @@ function parseUnlockWeek_(value) {
 }
 
 function weeksSinceStart_(startDateStr, tz) {
-  var start = parseDate_(startDateStr);
-  var now = getNow_();
-  var diff = now.getTime() - start.getTime();
+  var zone = tz || 'Asia/Tokyo';
+  var startMs = dateOnlyUtcMs_(startDateStr, zone);
+  var nowMs = dateOnlyUtcMs_(getNow_(), zone);
+  var diff = nowMs - startMs;
   var days = Math.floor(diff / (1000*60*60*24));
   // If before start date, return -1 (no test should be "this week's test")
   if (days < 0) return -1;
@@ -81,6 +97,13 @@ function getActiveEmail_() {
     email = '';
   }
   return String(email || '').trim();
+}
+
+function normalizeUserAccessBoolean_(value, defaultValue) {
+  if (value === true || value === false) return value ? 'true' : 'false';
+  var raw = String(value == null ? '' : value).trim().toLowerCase();
+  if (!raw) return defaultValue ? 'true' : 'false';
+  return (raw === 'false' || raw === '0' || raw === 'no') ? 'false' : 'true';
 }
 
 function getDirectoryProfile_(email) {
@@ -152,11 +175,12 @@ function getUserAccessByEmail_(email) {
         role: String(rows[i].role || 'user').toLowerCase(),
         managerEmail: String(rows[i].managerEmail || ''),
         active: active,
-        displayName: String(rows[i].displayName || '')
+        displayName: String(rows[i].displayName || ''),
+        showInDashboard: normalizeUserAccessBoolean_(rows[i].showInDashboard, true) !== 'false'
       };
     }
   }
-  return { email: email, role: 'user', managerEmail: '', active: false, displayName: '' };
+  return { email: email, role: 'user', managerEmail: '', active: false, displayName: '', showInDashboard: false };
 }
 
 function requireActiveUser_(userCtx) {
@@ -166,15 +190,21 @@ function requireActiveUser_(userCtx) {
   // Return a compatible access object (role defaults to 'user')
   var role = 'user';
   var managerRef = '';
+  var accessName = '';
+  var showInDashboard = true;
   // Try email first, then userKey (for non-Workspace users who have no email)
   var lookupKey = userCtx.email || userCtx.userKey;
   if (lookupKey) {
     var access = getUserAccessByEmail_(lookupKey);
+    if (!access || !access.active) {
+      throw new Error('このユーザーは無効です');
+    }
     if (access && access.role) role = access.role;
     if (access && access.managerEmail) managerRef = access.managerEmail;
-    if (access && access.displayName) var accessName = access.displayName;
+    if (access && access.displayName) accessName = access.displayName;
+    if (access && access.hasOwnProperty('showInDashboard')) showInDashboard = !!access.showInDashboard;
   }
-  return { email: userCtx.email || '', role: role, managerEmail: managerRef, active: true, displayName: accessName || userCtx.displayName || '' };
+  return { email: userCtx.email || '', role: role, managerEmail: managerRef, active: true, displayName: accessName || userCtx.displayName || '', showInDashboard: showInDashboard };
 }
 
 function requireAdmin_(userCtx) {
@@ -196,10 +226,27 @@ function getDirectReports_(managerEmail) {
       var rawActive = r.active;
       var active = true;
       if (rawActive === false || rawActive === 'false' || rawActive === 'FALSE' || rawActive === '0' || rawActive === 'no' || rawActive === 'No' || rawActive === 'NO') { active = false; }
+      if (normalizeUserAccessBoolean_(r.showInDashboard, true) === 'false') active = false;
       if (email && active) list.push(email);
     }
   });
   return list;
+}
+
+function ensureUserAccessSheetSchema_(sh) {
+  var expected = HEADERS[SHEETS.UserAccess];
+  var lastCol = Math.max(1, sh.getLastColumn());
+  var header = sh.getRange(1, 1, 1, lastCol).getValues()[0]
+    .map(function(h, i) { return normalizeHeader_(h, i); });
+  var changed = false;
+  expected.forEach(function(name) {
+    if (header.indexOf(name) >= 0) return;
+    sh.getRange(1, sh.getLastColumn() + 1).setValue(name);
+    header.push(name);
+    changed = true;
+  });
+  sh.setFrozenRows(1);
+  return { ok: true, changed: changed, headers: header };
 }
 
 function getUserAccessSheet_() {
@@ -208,6 +255,8 @@ function getUserAccessSheet_() {
   if (!sh) {
     sh = ss.insertSheet(SHEETS.UserAccess);
     setHeaders_(sh, HEADERS[SHEETS.UserAccess]);
+  } else {
+    ensureUserAccessSheetSchema_(sh);
   }
   return sh;
 }
@@ -227,9 +276,21 @@ function buildProgress_(attempts, totalTests, tz, weeksBack) {
     return a.status === 'submitted' && a.mode === 'test';
   });
   var submittedMap = {};
+  var completedByTest = {};
   submittedTests.forEach(function(a){
     if (a.testIndex !== '' && a.testIndex !== null && a.testIndex !== undefined) {
-      submittedMap[String(a.testIndex)] = true;
+      var key = String(a.testIndex);
+      submittedMap[key] = true;
+      var totalQ = Number(a.totalQuestions || 0);
+      var scorePct = totalQ > 0 ? Math.round(Number(a.scoreTotal || 0) / totalQ * 1000) / 10 : 0;
+      var submittedAt = String(a.submittedAt || a.startedAt || '');
+      var rec = completedByTest[key] || { completed: true, lastSubmittedAt: '', latestScorePct: 0, submitCount: 0 };
+      rec.submitCount += 1;
+      if (!rec.lastSubmittedAt || submittedAt >= String(rec.lastSubmittedAt || '')) {
+        rec.lastSubmittedAt = submittedAt;
+        rec.latestScorePct = scorePct;
+      }
+      completedByTest[key] = rec;
     }
   });
   var submittedUniqueCount = Object.keys(submittedMap).length;
@@ -285,6 +346,8 @@ function buildProgress_(attempts, totalTests, tz, weeksBack) {
     attemptsTotal: attempts.length,
     submittedTests: submittedUniqueCount,
     totalTests: totalTests,
+    submittedTestMap: submittedMap,
+    completedByTest: completedByTest,
     avgScore: avgScore,
     last7DaysCount: last7DaysCount,
     weekly: weekly,
@@ -404,6 +467,38 @@ function pickQuestions_(pool, count, usedVariant) {
   return picked;
 }
 
+function parseExamRangeTarget_(token) {
+  var m = String(token || '').trim().match(/^range:((?:H|R)\d+[A-Z]?)(takken|sekisan)?:(\d+)-(\d+)$/);
+  if (!m) return null;
+  var from = Number(m[3]);
+  var to = Number(m[4]);
+  if (from > to) {
+    var tmp = from;
+    from = to;
+    to = tmp;
+  }
+  return { year: m[1].toUpperCase(), exam: String(m[2] || '').toLowerCase(), from: from, to: to };
+}
+
+function questionMatchesExamRangeTarget_(q, token) {
+  var target = parseExamRangeTarget_(token);
+  if (!target) return false;
+  var meta = parseExamQId_(q.qId);
+  if (!meta) return false;
+  return meta.year === target.year && meta.no >= target.from && meta.no <= target.to;
+}
+
+function questionMatchesTargetSegments_(q, segs) {
+  if (!segs || segs.length === 0) return true;
+  for (var i = 0; i < segs.length; i++) {
+    var token = String(segs[i] || '').trim();
+    if (!token) continue;
+    if (questionMatchesExamRangeTarget_(q, token)) return true;
+    if (String(q.segmentId || '').trim() === token) return true;
+  }
+  return false;
+}
+
 function generateTestSet_(planRow, config) {
   var qb = readQuestionBank_().filter(function(q){
     return q.status === 'published' && isValidChoiceQuestion_(q);
@@ -422,7 +517,7 @@ function generateTestSet_(planRow, config) {
   // Redistribute unfilled ability slots to knowledge
   var actualKnowledgeCount = knowledgeCount + (abilityCount - abilityPicked.length);
 
-  var knowledgePool = qb.filter(function(q){ return q.type === 'knowledge' && segs.indexOf(q.segmentId) >= 0; });
+  var knowledgePool = qb.filter(function(q){ return q.type === 'knowledge' && questionMatchesTargetSegments_(q, segs); });
   var revisionPool = knowledgePool.filter(function(q){ return String(q.revisionFlag) === '1'; });
 
   var picked = [];
@@ -523,11 +618,13 @@ function getMockExamQuestions_(year, part) {
   var p = String(part || 'FULL').toUpperCase();
 
   var qb = readQuestionBank_().filter(function(q) {
+    var meta = parseExamQId_(q.qId);
     return q.status === 'published' &&
            isValidChoiceQuestion_(q) &&
-           String(q.qId || '').indexOf(y + 'sekisan-') === 0;
+           meta &&
+           meta.year === y;
   });
-  if (p === 'I' || p === 'II') {
+  if (p !== 'FULL') {
     qb = qb.filter(function(q) {
       var meta = parseExamQId_(q.qId);
       return meta && meta.section === p;
@@ -627,7 +724,7 @@ function getAnswerCount_(q) {
 }
 
 function parseExamQId_(qId) {
-  var m = String(qId || '').match(/^((?:H|R)\d+)sekisan-(\d+)$/i);
+  var m = String(qId || '').match(/^((?:H|R)\d+[A-Z]?)(?:takken|sekisan)-(\d+)$/i);
   if (!m) return null;
   var year = m[1].toUpperCase();
   var no = Number(m[2]);
@@ -639,12 +736,18 @@ function getExamSectionRules_(year, part) {
   var y = String(year || '').toUpperCase();
   var p = String(part || 'FULL').toUpperCase();
   if (!y) return [];
-  if (p === 'I') return [{ label: 'Ⅰ建築一般', noFrom: 1, noTo: 25, mode: 'ALL', required: 25 }];
-  if (p === 'II') return [{ label: 'Ⅱ数量積算', noFrom: 26, noTo: 50, mode: 'ALL', required: 25 }];
-  return [
-    { label: 'Ⅰ建築一般', noFrom: 1, noTo: 25, mode: 'ALL', required: 25 },
-    { label: 'Ⅱ数量積算', noFrom: 26, noTo: 50, mode: 'ALL', required: 25 }
+  var rules = [
+    { label: '権利関係', noFrom: 1, noTo: 14, mode: 'ALL', required: 14 },
+    { label: '法令上の制限', noFrom: 15, noTo: 22, mode: 'ALL', required: 8 },
+    { label: '税・その他', noFrom: 23, noTo: 25, mode: 'ALL', required: 3 },
+    { label: '宅地建物取引業法等', noFrom: 26, noTo: 45, mode: 'ALL', required: 20 },
+    { label: '免除科目・その他', noFrom: 46, noTo: 50, mode: 'ALL', required: 5 }
   ];
+  if (p === 'RIGHTS') return [rules[0]];
+  if (p === 'LAW') return [rules[1]];
+  if (p === 'BUSINESS') return [rules[3]];
+  if (p === 'OTHER') return [rules[2], rules[4]];
+  return rules;
 }
 
 
@@ -749,8 +852,10 @@ function computeFieldStats_(userKey) {
 // Optimized: accepts pre-read QuestionBank and user's TagStats rows
 function computeFieldStatsFromRows_(userTagRows, questionBank) {
   var FIELD_ORDER = [
-    { tag: 'Ⅰ建築一般', label: 'Ⅰ建築一般' },
-    { tag: 'Ⅱ数量積算', label: 'Ⅱ数量積算' }
+    { tag: '権利関係', label: '権利関係' },
+    { tag: '法令上の制限', label: '法令上の制限' },
+    { tag: '宅地建物取引業法等', label: '宅地建物取引業法等' },
+    { tag: '税・その他', label: '税・その他' }
   ];
 
   var qb = questionBank.filter(function(q) {
@@ -923,18 +1028,18 @@ function updateTestPlanRow_(testIndex, fields) {
 
 function adminFixTestPlanLabels_() {
   var labels = [
-    [1, '第1回 Ⅰ建築一般 ウォームアップ'],
-    [2, '第2回 Ⅰ建築一般 実践1'],
-    [3, '第3回 Ⅰ建築一般 実践2'],
-    [4, '第4回 Ⅰ建築一般 仕上げ'],
-    [5, '第5回 Ⅱ数量積算 ウォームアップ'],
-    [6, '第6回 Ⅱ数量積算 実践1'],
-    [7, '第7回 Ⅱ数量積算 実践2'],
-    [8, '第8回 Ⅱ数量積算 仕上げ'],
-    [9, '第9回 総合演習 1'],
-    [10, '第10回 総合演習 2'],
-    [11, '第11回 総合演習 3'],
-    [12, '第12回 総合演習 4']
+    [1, '第1回 権利関係 ウォームアップ'],
+    [2, '第2回 権利関係 実践'],
+    [3, '第3回 法令上の制限'],
+    [4, '第4回 宅建業法 ウォームアップ'],
+    [5, '第5回 宅建業法 実践1'],
+    [6, '第6回 宅建業法 実践2'],
+    [7, '第7回 税・その他'],
+    [8, '第8回 権利・法令 横断'],
+    [9, '第9回 宅建業法・その他 横断'],
+    [10, '第10回 総合演習 1'],
+    [11, '第11回 総合演習 2'],
+    [12, '第12回 総合演習 3']
   ];
 
   var updated = 0;
@@ -1183,6 +1288,7 @@ function computeNextAction_(unlocked, submittedMap, weakTags, next) {
       type: 'test',
       label: first.label,
       testIndex: first.testIndex,
+      unlockWeek: first.unlockWeek,
       targetSegments: first.targetSegments || '',
       questionsPerTest: first.questionsPerTest || 30,
       reason: '今週のテストです'
@@ -1260,7 +1366,7 @@ function generateStudyAdvice_(scoreData) {
 
 function buildAdvicePrompt_(data) {
   var lines = [];
-  lines.push('あなたは建築積算士一次試験の学習支援に詳しいコーチです。');
+  lines.push('あなたは宅地建物取引士（宅建）試験の学習支援に詳しいコーチです。');
   lines.push('以下の試験結果と過去の学習履歴を分析し、受験者への具体的な学習アドバイスを日本語で4?6行で書いてください。');
   lines.push('');
   lines.push('【重要な指示】');

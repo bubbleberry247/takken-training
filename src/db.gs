@@ -23,7 +23,7 @@ HEADERS[SHEETS.QuestionBank] = [
   'explainA', 'explainB', 'explainC', 'explainD', 'explainE',
   'correct', 'explainShort', 'explainLong', 'status', 'updatedAt'
 ];
-HEADERS[SHEETS.UserAccess] = ['email', 'role', 'managerEmail', 'active', 'updatedAt', 'displayName'];
+HEADERS[SHEETS.UserAccess] = ['email', 'role', 'managerEmail', 'active', 'updatedAt', 'displayName', 'showInDashboard'];
 HEADERS[SHEETS.TestPlan14] = [
   'testIndex', 'label', 'targetSegments', 'questionsPerTest',
   'abilityCount', 'revisionMinCount', 'unlockWeek', 'notes'
@@ -230,13 +230,16 @@ function setupForce() {
   return setup_(true);
 }
 
+var TAKKEN_2026_PROGRAM_START_DATE_ = '2026-07-01';
+var TAKKEN_2026_EXAM_DATE_ = '2026-10-18';
+
 function initConfig_() {
   var sh = getSheet_(SHEETS.Config);
   var rows = [
-    ['PROGRAM_START_DATE', '2026-04-11'],
-    ['EXAM_DATE', ''],
+    ['PROGRAM_START_DATE', TAKKEN_2026_PROGRAM_START_DATE_],
+    ['EXAM_DATE', TAKKEN_2026_EXAM_DATE_],
     ['TIME_LIMIT_MINUTES', '30'],
-    ['QUESTIONS_PER_TEST', '20'],
+    ['QUESTIONS_PER_TEST', '10'],
     ['ABILITY_PER_TEST', '0'],
     ['MINI_TIME_LIMIT_MINUTES', '15'],
     ['MINI_QUESTIONS_PER_TEST', '10'],
@@ -274,41 +277,75 @@ function updateConfigValue_(key, newValue) {
 
 // 試験日を修正する一時関数
 function fixExamDate_() {
-  updateConfigValue_('EXAM_DATE', '');
-  Logger.log('試験日を空欄に更新しました');
+  updateConfigValue_('PROGRAM_START_DATE', TAKKEN_2026_PROGRAM_START_DATE_);
+  updateConfigValue_('EXAM_DATE', TAKKEN_2026_EXAM_DATE_);
+  updateConfigValue_('QUESTIONS_PER_TEST', '10');
+  Logger.log('宅建2026週次ミニテスト設定を更新しました');
 }
 
 function initTestPlan_() {
   var sh = getSheet_(SHEETS.TestPlan14);
   var plan = [
-    [1, '第1回 権利関係 ウォームアップ', 'sekisan_I', 20, 0, 2, 0, '民法の基礎用語と出題形式に慣れる回'],
-    [2, '第2回 権利関係 実践1', 'sekisan_I', 20, 0, 2, 1, '権利関係の頻出テーマを反復'],
-    [3, '第3回 権利関係 実践2', 'sekisan_I', 20, 0, 2, 2, '苦手論点の洗い出し'],
-    [4, '第4回 権利関係 仕上げ', 'sekisan_I', 20, 0, 2, 3, '権利関係分野の総合確認'],
-    [5, '第5回 法令上の制限 ウォームアップ', 'sekisan_II', 20, 0, 2, 4, '都市計画法・建築基準法の基礎を整理'],
-    [6, '第6回 法令上の制限 実践1', 'sekisan_II', 20, 0, 2, 5, '法令制限の頻出論点を反復'],
-    [7, '第7回 法令上の制限 実践2', 'sekisan_II', 20, 0, 2, 6, '計算と判断の精度を上げる'],
-    [8, '第8回 法令上の制限 仕上げ', 'sekisan_II', 20, 0, 2, 7, '法令制限分野の総合確認'],
-    [9, '第9回 総合演習 1', 'sekisan_I,sekisan_II', 25, 0, 3, 8, '全範囲の横断演習'],
-    [10, '第10回 総合演習 2', 'sekisan_I,sekisan_II', 25, 0, 3, 9, '本試験ペースの確認'],
-    [11, '第11回 総合演習 3', 'sekisan_I,sekisan_II', 25, 0, 3, 10, '頻出分野の取りこぼし防止'],
-    [12, '第12回 総合演習 4', 'sekisan_I,sekisan_II', 25, 0, 3, 11, '直前総仕上げ']
+    [1, '第1回 R7 問1〜10', 'range:R7takken:1-10', 10, 0, 0, 0, '直近3年150問を週10問で回す'],
+    [2, '第2回 R7 問11〜20', 'range:R7takken:11-20', 10, 0, 0, 1, ''],
+    [3, '第3回 R7 問21〜30', 'range:R7takken:21-30', 10, 0, 0, 2, ''],
+    [4, '第4回 R7 問31〜40', 'range:R7takken:31-40', 10, 0, 0, 3, ''],
+    [5, '第5回 R7 問41〜50', 'range:R7takken:41-50', 10, 0, 0, 4, ''],
+    [6, '第6回 R6 問1〜10', 'range:R6takken:1-10', 10, 0, 0, 5, ''],
+    [7, '第7回 R6 問11〜20', 'range:R6takken:11-20', 10, 0, 0, 6, ''],
+    [8, '第8回 R6 問21〜30', 'range:R6takken:21-30', 10, 0, 0, 7, ''],
+    [9, '第9回 R6 問31〜40', 'range:R6takken:31-40', 10, 0, 0, 8, ''],
+    [10, '第10回 R6 問41〜50', 'range:R6takken:41-50', 10, 0, 0, 9, ''],
+    [11, '第11回 R5 問1〜10', 'range:R5takken:1-10', 10, 0, 0, 10, ''],
+    [12, '第12回 R5 問11〜20', 'range:R5takken:11-20', 10, 0, 0, 11, ''],
+    [13, '第13回 R5 問21〜30', 'range:R5takken:21-30', 10, 0, 0, 12, ''],
+    [14, '第14回 R5 問31〜40', 'range:R5takken:31-40', 10, 0, 0, 13, ''],
+    [15, '第15回 R5 問41〜50', 'range:R5takken:41-50', 10, 0, 0, 14, '試験日を含む週は直前確認期間として空ける']
   ];
   appendRows_(sh, plan);
+}
+
+function syncTakken2026Schedule_() {
+  updateConfigValue_('PROGRAM_START_DATE', TAKKEN_2026_PROGRAM_START_DATE_);
+  updateConfigValue_('EXAM_DATE', TAKKEN_2026_EXAM_DATE_);
+  updateConfigValue_('QUESTIONS_PER_TEST', '10');
+  updateConfigValue_('TIME_LIMIT_MINUTES', '30');
+
+  var planSheet = getSheet_(SHEETS.TestPlan14);
+  planSheet.clear();
+  setHeaders_(planSheet, HEADERS[SHEETS.TestPlan14]);
+  initTestPlan_();
+
+  var clearedTestSets = 0;
+  var testSetsSheet = getSheet_(SHEETS.TestSets);
+  var lastRow = testSetsSheet.getLastRow();
+  if (lastRow > 1) {
+    clearedTestSets = lastRow - 1;
+    testSetsSheet.getRange(2, 1, clearedTestSets, testSetsSheet.getLastColumn()).clearContent();
+  }
+  try { clearAllCache_(); } catch (e) {}
+
+  return {
+    ok: true,
+    programStartDate: TAKKEN_2026_PROGRAM_START_DATE_,
+    examDate: TAKKEN_2026_EXAM_DATE_,
+    testPlanCount: 15,
+    clearedTestSets: clearedTestSets
+  };
 }
 
 function initSampleData_() {
   var qb = getSheet_(SHEETS.QuestionBank);
 
   var tags = [
-    '権利関係', '法令上の制限'
+    '権利関係', '法令上の制限', '宅地建物取引業法等', '税・その他'
   ];
 
   var now = Utilities.formatDate(new Date(), 'Asia/Tokyo', 'yyyy-MM-dd HH:mm:ss');
 
   // QuestionBank (sample)
   var segments = [
-    'sekisan_I', 'sekisan_II'
+    'takken_rights', 'takken_law', 'takken_business', 'takken_other'
   ];
   var qRows = [];
   var qId = 1;
@@ -322,8 +359,8 @@ function initSampleData_() {
         segments[s],
         'knowledge',
         2,
-        segments[s] === 'sekisan_I' ? '権利関係' : '法令上の制限',
-        'H25',
+        tags[s],
+        'H28',
         '',
         '',
         (k % 3 === 0) ? 1 : 0,
@@ -331,7 +368,8 @@ function initSampleData_() {
         'VG-' + segments[s] + '-' + k,
         'SAMPLE-' + segments[s] + '-' + k,
         '',
-        '次のうち正しい記述はどれか（' + (segments[s] === 'sekisan_I' ? '権利関係' : '法令上の制限') + '）',
+        '',
+        '次のうち正しい記述はどれか（' + tags[s] + '）',
         '選択肢A', '選択肢B', '選択肢C', '選択肢D', '選択肢E',
         '', '', '', '', '',
         'A',
