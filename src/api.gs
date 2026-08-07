@@ -830,10 +830,16 @@ function apiStartPractice(tags, limit, clientUserKey) {
     return q.status === 'published' && q.type === 'knowledge' && isValidChoiceQuestion_(q);
   });
   var tagSet = {};
-  (tags || []).forEach(function(t){ tagSet[t] = true; });
+  (tags || []).forEach(function(t){
+    var tag = String(t || '').trim();
+    if (tag && !isYearOnlyTag_(tag)) tagSet[tag] = true;
+  });
 
   var pool = qb.filter(function(q){
-    return tagSet[q.tag1] || tagSet[q.tag2] || tagSet[q.tag3];
+    return [q.tag1, q.tag2, q.tag3].some(function(rawTag){
+      var tag = String(rawTag || '').trim();
+      return tag && !isYearOnlyTag_(tag) && tagSet[tag];
+    });
   });
   var usedVariant = {};
   var picked = pickQuestions_(pool, Number(limit || 10), usedVariant);

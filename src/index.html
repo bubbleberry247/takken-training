@@ -50,6 +50,7 @@
     .kpi-progress{height:2vw;background:var(--border);border-radius:1px;overflow:hidden;margin-top:1.5vw}
     .kpi-progress-bar{height:100%;background:var(--accent);border-radius:1px;transition:width .5s ease}
     .small{font-size:.8rem;color:var(--text-2)}
+    .content-version-notice{margin:10px 0;padding:10px 12px;border-left:3px solid var(--warn);background:var(--warn-lt);color:var(--text-2);font-size:.78rem;line-height:1.6}
     .danger{color:var(--ng);font-weight:500}
     .next-action-card{background:var(--accent);color:#fff;border-radius:2px;padding:3.7vw 2.6vw;display:flex;align-items:center;gap:2.6vw;margin:0 1vw}
     .next-action-content{flex:1}
@@ -489,6 +490,7 @@
   <main>
     <nav id="main-tab-nav" class="tab-nav hidden"></nav>
     <section id="view-home">
+      <div class="content-version-notice">本サイトの問題は、各年度の出題当時の法令・基準・試験形式に基づいています。現在の法令・基準とは異なる場合があります。</div>
       <div class="hero-shell">
         <div class="hero-card">
           <div class="hero-copy">
@@ -610,6 +612,7 @@
             <div id="question-timer" style="font-size:0.8rem;color:#6b7280;margin-top:2px"></div>
           </div>
         </div>
+        <div class="content-version-notice">本サイトの問題は、各年度の出題当時の法令・基準・試験形式に基づいています。現在の法令・基準とは異なる場合があります。</div>
         <div id="exam-status-grid" class="exam-status-grid"></div>
         <div id="exam-rules-compact"></div>
         <div id="exam-question" class="exam-question"></div>
@@ -623,6 +626,7 @@
     </section>
     <section id="view-result" class="card hidden">
       <h2>Result</h2>
+      <div class="content-version-notice">本サイトの問題は、各年度の出題当時の法令・基準・試験形式に基づいています。現在の法令・基準とは異なる場合があります。</div>
       <div id="result-summary"></div>
       <div id="result-compare"></div>
       <div id="result-advice"></div>
