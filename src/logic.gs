@@ -16,6 +16,37 @@ function formatDateTime_(d, tz) {
   return Utilities.formatDate(d, tz, 'yyyy-MM-dd HH:mm:ss');
 }
 
+function parseDateTime_(value, tz) {
+  if (value instanceof Date) {
+    return isNaN(value.getTime()) ? null : value;
+  }
+  var raw = String(value || '').trim();
+  if (!raw) return null;
+
+  var parsed = null;
+  var normalized = raw.replace('T', ' ');
+  if (/^\d{4}-\d{2}-\d{2} \d{2}:\d{2}:\d{2}$/.test(normalized)) {
+    try {
+      parsed = Utilities.parseDate(normalized, tz || 'Asia/Tokyo', 'yyyy-MM-dd HH:mm:ss');
+    } catch (e) {
+      parsed = null;
+    }
+  }
+  if (!parsed) parsed = new Date(raw);
+  return parsed && !isNaN(parsed.getTime()) ? parsed : null;
+}
+
+function isTimedAttemptMode_(mode) {
+  return ['test', 'mock', 'mini', 'training', 'field'].indexOf(String(mode || '')) !== -1;
+}
+
+function isAttemptExpired_(attempt, now, tz) {
+  var rawEndsAt = attempt ? attempt.endsAt : '';
+  var endsAt = parseDateTime_(rawEndsAt, tz);
+  if (isTimedAttemptMode_(attempt && attempt.mode)) return !endsAt || now > endsAt;
+  return Boolean(rawEndsAt) && (!endsAt || now > endsAt);
+}
+
 function formatDate_(d, tz) {
   return Utilities.formatDate(d, tz, 'yyyy-MM-dd');
 }
