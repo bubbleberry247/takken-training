@@ -27,10 +27,11 @@ check(logic.includes("if (!isYearOnlyTag_(r.tag)) tagMap[r.tag] = r;"), 'legacy 
 check(logic.includes("if (!tag || isYearOnlyTag_(tag)) return;"), 'year tags are not written to TagStats');
 check(api.includes("if (tag && !isYearOnlyTag_(tag)) tagSet[tag] = true;"), 'incoming practice year tags are ignored');
 check(api.includes("return tag && !isYearOnlyTag_(tag) && tagSet[tag];"), 'question year tags are ignored during practice matching');
+check(api.includes("if (!t || isYearOnlyTag_(t)) return;"), 'admin tag-frequency rebuild excludes year tags');
+check(api.includes("counts[t] = (counts[t] || 0) + 1;"), 'admin tag-frequency rebuild retains normal tag counting');
 
 const notice = '本サイトの問題は、各年度の出題当時の法令・基準・試験形式に基づいています。現在の法令・基準とは異なる場合があります。';
 check((html.match(new RegExp(notice, 'g')) || []).length === 3, 'notice appears exactly on home, exam, and result views');
 check(html.includes('.content-version-notice{'), 'notice has shared presentation styling');
 
 console.log(`All ${passed} contract checks passed.`);
-

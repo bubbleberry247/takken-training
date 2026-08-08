@@ -1125,7 +1125,7 @@ function adminRebuildTagFrequency_() {
   qb.forEach(function(q){
     ['tag1','tag2','tag3'].forEach(function(k){
       var t = q[k];
-      if (!t) return;
+      if (!t || isYearOnlyTag_(t)) return;
       counts[t] = (counts[t] || 0) + 1;
     });
   });
