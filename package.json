@@ -7,7 +7,7 @@
     "clasp:push": "clasp push",
     "lint": "echo \"(no lint)\"",
     "fix-csv": "node tools/fix_7_questions.mjs",
-    "test": "node tools/test_timer_contract.mjs && node tools/test_stem_formatting.mjs && python tools/test_takken_questionbank_pipeline.py"
+    "test": "node tools/test_timer_contract.mjs && node tools/test_stem_formatting.mjs && node tools/test_team_progress_visibility.mjs && python tools/test_takken_questionbank_pipeline.py"
   },
   "devDependencies": {
     "@google/clasp": "^2.5.0"

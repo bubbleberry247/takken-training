@@ -37,26 +37,61 @@ function buildTeamProgressSummary_(accessRows, userRows, allAttempts, totalTests
   var warnings = [];
   var userByEmail = {};
   var viewer = viewerAccess || {};
-  var viewerRole = String(viewer.role || 'user').toLowerCase();
-  var viewerEmail = String(viewer.email || '').toLowerCase();
+  var viewerRole = String(viewer.role || 'user').trim().toLowerCase();
+  var viewerEmail = String(viewer.email || '').trim().toLowerCase();
+  var canViewTeam = viewerRole === 'admin' || viewerRole === 'manager';
+  var viewerDisplayName = '';
+  var includedByEmail = {};
+
+  // Team progress is an admin/manager-only summary.  A regular user must
+  // never receive another user's progress rows from this server-side helper.
+  if (!canViewTeam) return { team: team, warnings: warnings };
 
   userRows.forEach(function(r) {
-    var em = String(r.email || '').toLowerCase();
-    if (em) userByEmail[em] = r;
+    var em = String(r.email || '').trim().toLowerCase();
+    var userKey = String(r.userKey || '').trim();
+    var userDisplayName = String(r.displayName || '').trim();
+    if (!em) return;
+    if (!userByEmail[em]) userByEmail[em] = { userKey: '', displayName: '' };
+    if (!userByEmail[em].userKey && userKey) userByEmail[em].userKey = userKey;
+    if (!userByEmail[em].displayName && userDisplayName) userByEmail[em].displayName = userDisplayName;
+  });
+
+  // Access rows can contain the same address with different casing or
+  // surrounding whitespace.  Collect the viewer's first non-empty name from
+  // the complete duplicate set before selecting the single visible row.
+  accessRows.forEach(function(ar) {
+    var em = String(ar.email || '').trim().toLowerCase();
+    var accessDisplayName = String(ar.displayName || '').trim();
+    if (viewerEmail && em === viewerEmail && !viewerDisplayName && accessDisplayName) {
+      viewerDisplayName = accessDisplayName;
+    }
   });
 
   accessRows.forEach(function(ar) {
-    var em = String(ar.email || '').toLowerCase();
+    var em = String(ar.email || '').trim().toLowerCase();
     if (!em) return;
-    if (viewerEmail && em === viewerEmail) return;
-    if (normalizeUserAccessBoolean_(ar.active, true) === 'false') return;
-    if (normalizeUserAccessBoolean_(ar.showInDashboard, true) === 'false') return;
-    if (viewerRole === 'manager' && String(ar.managerEmail || '').toLowerCase() !== viewerEmail) return;
-    if (viewerRole !== 'admin' && viewerRole !== 'manager') return;
+
+    // The signed-in admin/manager may always see their own row.  This is an
+    // intentional exception to the row visibility and manager-scope filters;
+    // it does not broaden access to anyone else's data.
+    var isViewer = viewerEmail && em === viewerEmail;
+    if (!isViewer) {
+      if (normalizeUserAccessBoolean_(ar.active, true) === 'false') return;
+      if (normalizeUserAccessBoolean_(ar.showInDashboard, true) === 'false') return;
+      if (viewerRole === 'manager' &&
+          (!viewerEmail || String(ar.managerEmail || '').trim().toLowerCase() !== viewerEmail)) return;
+    }
+
+    // Only an eligible row claims an address.  Therefore an earlier hidden,
+    // inactive, or out-of-scope duplicate cannot hide a later eligible row,
+    // while subsequent eligible duplicates cannot create extra progress rows.
+    if (includedByEmail[em]) return;
+    includedByEmail[em] = true;
 
     var userRec = userByEmail[em] || {};
     var uk = String(userRec.userKey || '');
-    var displayName = ar.displayName || userRec.displayName || em;
+    var displayName = (isViewer ? viewerDisplayName : ar.displayName) || userRec.displayName || em;
     var userAttempts = uk ? allAttempts.filter(function(a){ return String(a.userKey || '') === uk; }) : [];
     var summary = null;
     var warning = '';
