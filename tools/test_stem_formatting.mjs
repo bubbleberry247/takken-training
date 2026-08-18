@@ -34,6 +34,8 @@ vm.runInContext([
   extractFunction('insertSafeStatementBreaks_'),
   extractFunction('shouldFormatStatementBreaks_'),
   extractFunction('formatStatementBreaks_'),
+  extractFunction('formatCaseBreaks_'),
+  extractFunction('formatChoiceText_'),
   extractFunction('fmtStem'),
   extractFunction('boldMarkers'),
 ].join('\n'), context);
@@ -102,7 +104,7 @@ assert.equal(
 
 for (const row of countRows) {
   assert.equal(context.shouldFormatStatementBreaks_(row.stem), true, `${row.qId} must be display-formatted`);
-  assert.match(fmtStem(row.stem), /<br>/, `${row.qId} must render at least one display break`);
+  assert.match(fmtStem(row.stem, row.qId), /<br>/, `${row.qId} must render at least one display break`);
 }
 
 // R6-040 keeps its combination statements in the answer choices, not the stem.
@@ -110,7 +112,7 @@ for (const row of countRows) {
 for (const row of combinationRows) {
   if (row.qId === 'R6takken-040') continue;
   assert.equal(context.shouldFormatStatementBreaks_(row.stem), true, `${row.qId} must be display-formatted`);
-  assert.match(fmtStem(row.stem), /<br>/, `${row.qId} must render at least one display break`);
+  assert.match(fmtStem(row.stem, row.qId), /<br>/, `${row.qId} must render at least one display break`);
 }
 
 const focusedRegressions = [
@@ -124,9 +126,9 @@ const focusedRegressions = [
 ];
 for (const [qId, expected] of focusedRegressions) {
   assert.ok(rowById.has(qId), `${qId} must remain in the canonical inventory`);
-  assert.match(fmtStem(rowById.get(qId).stem), expected, `${qId} focused display regression`);
+  assert.match(fmtStem(rowById.get(qId).stem, qId), expected, `${qId} focused display regression`);
 }
-const repeatedStartLegacy = fmtStem(rowById.get('R2atakken-040').stem);
+const repeatedStartLegacy = fmtStem(rowById.get('R2atakken-040').stem, 'R2atakken-040');
 const repeatedStart = 'Bが喫茶店で当該宅地の買受けの申込みをした場合において、';
 const repeatedLines = repeatedStartLegacy.split('<br>');
 assert.equal(repeatedLines.length, 5, 'R2atakken-040 should render prompt plus four item lines');
@@ -142,7 +144,7 @@ assert.equal(
   'R2atakken-040 fourth item should begin on its own display line',
 );
 assert.equal(repeatedLines.reduce((total, line) => total + line.split(repeatedStart).length - 1, 0), 3);
-const punctuationlessLegacy = fmtStem(rowById.get('R3btakken-042').stem);
+const punctuationlessLegacy = fmtStem(rowById.get('R3btakken-042').stem, 'R3btakken-042');
 assert.match(punctuationlessLegacy, /目的<br>設計図書/);
 assert.match(punctuationlessLegacy, /状況<br>契約の解除/);
 assert.match(punctuationlessLegacy, /内容<br>天災その他/);
@@ -191,6 +193,24 @@ const ordinaryCountSource = '会場にいる人数はいくつあるか。確認
 const ordinaryCount = fmtStem(ordinaryCountSource);
 assert.equal(context.shouldFormatStatementBreaks_(ordinaryCountSource), false, 'ordinary count wording without a statement list stays unchanged');
 assert.equal(ordinaryCount.includes('<br>'), false, 'ordinary count wording must not acquire a display break');
+
+const caseStemSource = '令和8年7月1日に下記ケースに関する次の記述のうち、正しいものはどれか。（ケース①）個人Aが金融機関Bから借入れをした場合（ケース②）個人Aが建物賃貸借契約を締結した場合';
+const caseStem = fmtStem(caseStemSource, 'R2atakken-002');
+assert.match(caseStem, /どれか。<br>（ケース①）/);
+assert.match(caseStem, /場合<br>（ケース②）/);
+assert.equal(caseStem.includes('\n'), false, 'case formatting must emit HTML breaks');
+const otherCaseStem = fmtStem(caseStemSource, 'futuretakken-001');
+assert.equal(otherCaseStem.includes('<br>（ケース①）'), false, 'same case label on another qId must remain unchanged');
+assert.equal(otherCaseStem.includes('<br>（ケース②）'), false, 'second case label on another qId must remain unchanged');
+const unidentifiedCaseStem = fmtStem(caseStemSource);
+assert.equal(unidentifiedCaseStem.includes('<br>'), false, 'missing qId must not authorize the targeted repair');
+
+const multiItemQuestion = { qId: 'R6takken-040' };
+const multiItemChoice = context.formatChoiceText_(multiItemQuestion, 'ア 当該建物に係る租税その他の公課の負担、イ 敷金や共益費など借賃以外の金銭の授受に関する定めがあるときは、その額並びに当該金銭の授受の時期及び目的');
+assert.match(multiItemChoice, /^ア 当該建物に係る租税その他の公課の負担、<br>イ 敷金/);
+assert.equal((multiItemChoice.match(/<br>/g) || []).length, 1, 'R6takken-040 choice A has one safe item boundary');
+const ordinaryChoice = context.formatChoiceText_({ qId: 'R5takken-028' }, 'ア 第一の記述、イ 第二の記述');
+assert.equal(ordinaryChoice.includes('<br>'), false, 'ordinary legal choices must not be split by the targeted rule');
 
 const bracketedStatement = fmtStem('導入（説明。内部）。次の記述のうち、正しいものはいくつあるか。第一（例。説明）項目。第二項目。第三項目。');
 assert.equal(bracketedStatement.includes('説明。<br>内部'), false, 'parenthetical punctuation must not split');

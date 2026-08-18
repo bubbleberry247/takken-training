@@ -953,9 +953,30 @@
       return s;
     }
 
-    function fmtStem(stem) {
+    function formatCaseBreaks_(stem, qId) {
+      var s = String(stem || '').replace(/\r\n?/g, '\n');
+      // Keep this presentation-only repair bound to the audited source row.
+      // Future questions can legitimately use the same labels with a different
+      // layout, so the marker text alone is not sufficient authorization.
+      if (String(qId || '') !== 'R2atakken-002') return s;
+      return s.replace(/([^\n])[ \t\u3000]*(（ケース[①②]）)/g, '$1\n$2');
+    }
+
+    function formatChoiceText_(q, text) {
+      var s = String(text || '').replace(/\r\n?/g, '\n');
+      // R6takken-040 stores two labelled statements in each answer choice.
+      // Split only that known qId; a broad ア/イ regex would corrupt ordinary
+      // multi-sentence legal choices elsewhere in the question bank.
+      if (q && q.qId === 'R6takken-040') {
+        s = s.replace(/([、,])[^\S\n]*(?=[ア-オ][ \u3000])/g, '$1\n');
+      }
+      s = s.replace(/^([1-9])[ \u3000](?=[^\d.．])/g, '$1．');
+      return escapeHtml(s).replace(/\n/g, '<br>');
+    }
+
+    function fmtStem(stem, qId) {
       var keepStatementBreaks = shouldFormatStatementBreaks_(stem);
-      var s = keepStatementBreaks ? formatStatementBreaks_(stem) : String(stem || '');
+      var s = keepStatementBreaks ? formatStatementBreaks_(stem) : formatCaseBreaks_(stem, qId);
       s = s
         .replace(/(。)\s*([①-⑳])/g, '$1\n$2')
         .replace(/(。)\s*・/g, '$1\n・');
@@ -965,6 +986,9 @@
         s = s.replace(/\n(?![・1-9①-⑳])/g, '');
       }
       s = s.replace(/(\n|。)([1-9])(?=[^\d\s.．〜～・（「])/g, '$1$2．');
+      // Apply the explicit case boundary after the legacy newline cleanup,
+      // which intentionally removes most non-list newlines.
+      s = formatCaseBreaks_(s, qId);
       return boldMarkers(escapeHtml(s)).replace(/\n/g, '<br>');
     }
     function boldMarkers(text) {
@@ -3101,7 +3125,7 @@
 
       const imageHtml = renderQuestionImage(q);
       const metaHtml = renderQuestionMeta(q);
-      setHtml('exam-question', metaHtml + '<div><b>' + escapeHtml(qLabel) + '</b> ' + fmtStem(q.stem) + '</div>' + imageHtml);
+      setHtml('exam-question', metaHtml + '<div><b>' + escapeHtml(qLabel) + '</b> ' + fmtStem(q.stem, q.qId) + '</div>' + imageHtml);
       if (typeof renderMathInElement === 'function') {
         renderMathInElement(document.getElementById('exam-question'), {delimiters:[{left:'$',right:'$',display:false}],throwOnError:false});
       }
@@ -3149,7 +3173,7 @@
         html += countModel.statements.map(function(c, idx) {
           return '<div class="choice-item count-statement">' +
             '<div class="choice-number">' + escapeHtml(statementLabels[idx] || String(idx + 1)) + '</div>' +
-            '<div class="choice-text">' + escapeHtml(String(c.text || '').replace(/^([1-9])[ \u3000](?=[^\d.．])/, '$1．')) + '</div>' +
+            '<div class="choice-text">' + formatChoiceText_(q, c.text) + '</div>' +
             '</div>';
         }).join('');
       } else {
@@ -3160,7 +3184,7 @@
           const cls = 'choice-item' + (selected ? ' selected' : '');
           return '<div class="' + cls + '" onclick="selectChoice(\'' + escapeHtml(q.qId) + '\',\'' + escapeHtml(c.key) + '\')">' +
             '<div class="choice-number">' + escapeHtml(num) + '</div>' +
-            '<div class="choice-text">' + escapeHtml(c.text.replace(/^([1-9])[ \u3000](?=[^\d.．])/, '$1．')) + '</div>' +
+            '<div class="choice-text">' + formatChoiceText_(q, c.text) + '</div>' +
             '</div>';
         }).join('');
       }
@@ -3233,7 +3257,7 @@
         var chosenBadge = isChosen ? '<span class="chosen-badge ' + (isChoiceCorrect ? 'ok' : 'ng') + '">あなたの解答</span>' : '';
         var choiceContent = (!countModel && q.choiceImageUrl)
           ? '<img src="' + escapeHtml(q.choiceImageUrl) + '" style="max-width:100%;height:auto;display:block;margin:8px 0;" alt="選択肢画像">'
-          : '<div>' + escapeHtml(c.text || '') + '</div>';
+          : '<div>' + formatChoiceText_(q, c.text || '') + '</div>';
 
         return '<div class="' + cls + '">' +
           '<div class="choice-header">' + icon + '<span class="choice-label">選択肢' + escapeHtml(num) + '</span>' + correctBadge + chosenBadge + '</div>' +
@@ -4176,7 +4200,7 @@
           const isMulti = String(w.correct || '').indexOf(',') >= 0;
           const multiLabel = isMulti ? '（複数選択）' : '';
           const explain = w.explainChoice ? ('<div class="small">不正解解説: ' + escapeHtml(w.explainChoice) + '</div>') : '';
-          return '<div class="card"><div><b>' + escapeHtml(w.qId) + '</b> ' + fmtStem(w.stem) + '</div>' +
+          return '<div class="card"><div><b>' + escapeHtml(w.qId) + '</b> ' + fmtStem(w.stem, w.qId) + '</div>' +
             '<div class="small">あなたの回答: ' + escapeHtml(w.chosen) + ' / 正解: ' + escapeHtml(w.correct) + multiLabel + '</div>' +
             explainMainHtml + explain + '</div>';
         }
@@ -4190,7 +4214,7 @@
           '</div>';
         return [
           '<div class="card">',
-          '<div><b>' + escapeHtml(w.qId) + '</b> ' + fmtStem(w.stem) + '</div>',
+          '<div><b>' + escapeHtml(w.qId) + '</b> ' + fmtStem(w.stem, w.qId) + '</div>',
           '<div class="explain-card">',
           '<div class="explain-header">' + header + '</div>',
           explainMainHtml,
@@ -4288,7 +4312,7 @@
 
         html += '<div style="background:' + bgColor + ';border-radius:8px;padding:12px;margin-bottom:12px;border:1px solid ' + borderColor + '">';
         html += '<div style="font-weight:700;color:' + (!answered ? '#FDBA74' : (isCorrect ? '#2e7d32' : '#c62828')) + ';margin-bottom:6px">' + icon + '【Q' + qNum + '】</div>';
-        html += '<div style="font-size:0.9rem;line-height:1.6;margin-bottom:8px">' + fmtStem(stem) + '</div>';
+        html += '<div style="font-size:0.9rem;line-height:1.6;margin-bottom:8px">' + fmtStem(stem, q.qId) + '</div>';
         html += '<div style="font-size:0.85rem;color:#6b7280;margin-bottom:6px"><strong>正解:</strong> ' + escapeHtml(correct) + '</div>';
         html += '<div style="font-size:0.9rem;line-height:1.7;color:#1e293b;white-space:pre-wrap">' + escapeHtml(explainLong) + '</div>';
         html += '</div>';
