@@ -820,12 +820,151 @@
         .replace(/"/g, '&quot;')
         .replace(/'/g, '&#39;');
     }
-            function fmtStem(stem) {
-      var s = String(stem || '')
+    function hasStatementListMarkers_(stem) {
+      var s = String(stem || '').replace(/\r\n?/g, '\n');
+      return /(?:^|\n)[ \t\u3000]*[ア-オ](?=[ \t\u3000])/.test(s) ||
+        /\/\/[ \t\u3000]*[ア-オ](?=[ \t\u3000])/.test(s) ||
+        /(?:^|[。！？\n])[ \t\u3000]*[1-9][.．](?=[ \t\u3000]|[^\d])/.test(s) ||
+        /[（(][ア-オ][）)]/.test(s);
+    }
+
+    function isCountQuestionStem_(stem) {
+      return /(いくつあるか|何個あるか|何人いるか)/.test(String(stem || ''));
+    }
+
+    function isCombinationQuestionStem_(stem) {
+      var s = String(stem || '');
+      return /(?:組合せ|組み合わせ)[^。！？\n]{0,100}(?:どれか|1から4)/.test(s) ||
+        /(?:全て|すべて)掲げた/.test(s);
+    }
+
+    function hasUnlabelledCountStatements_(stem) {
+      var s = String(stem || '');
+      var match = /(いくつあるか|何個あるか|何人いるか)/.exec(s);
+      if (!match) return false;
+      var tail = s.slice(match.index + match[0].length);
+      tail = tail.replace(/^[。！？]/, '');
+      // Most historical rows have one full stop per statement. Two malformed
+      // rows have no stops, so recognize only their unambiguous statement starts.
+      if ((tail.match(/。/g) || []).length >= 2) return true;
+      if ((tail.match(/Bが喫茶店で当該宅地の買受けの申込みをした場合において、/g) || []).length >= 2) return true;
+      return /設計図書、点検記録[\s\S]*契約の解除に関する[\s\S]*天災その他不可抗力/.test(tail);
+    }
+
+    function hasUnlabelledCombinationStatements_(stem) {
+      var s = String(stem || '');
+      var match = /(?:組合せ|組み合わせ)[^。！？\n]{0,100}(?:どれか|1から4)/.exec(s);
+      if (!match) return false;
+      var tail = s.slice(match.index + match[0].length);
+      tail = tail.replace(/^[。！？]/, '');
+      var periods = (tail.match(/。/g) || []).length;
+      // One legacy combination row omitted all statement punctuation. Its
+      // statement block is still long enough to distinguish it from a short
+      // explanatory tail; leave the choice-only rows unchanged.
+      return periods >= 2 || (periods <= 1 && tail.replace(/[\s。]/g, '').length >= 100);
+    }
+
+    function getStatementPromptMatch_(stem) {
+      var s = String(stem || '');
+      var match = /(いくつあるか|何個あるか|何人いるか)[。！？]?/.exec(s);
+      if (match) return match;
+      match = /(?:組合せ|組み合わせ)[^。！？\n]{0,100}(?:どれか|1から4)[。！？]?/.exec(s);
+      if (match) return match;
+      return /(?:全て|すべて)掲げた[^。！？\n]{0,100}どれか[。！？]?/.exec(s);
+    }
+
+    function isOpeningStatementBracket_(ch) {
+      return ch === '（' || ch === '(' || ch === '[' || ch === '【' || ch === '「' || ch === '『';
+    }
+
+    function isClosingStatementBracket_(ch) {
+      return ch === '）' || ch === ')' || ch === ']' || ch === '】' || ch === '」' || ch === '』';
+    }
+
+    function insertSafeStatementBreaks_(stem) {
+      var s = String(stem || '').replace(/\r\n?/g, '\n');
+      var prompt = getStatementPromptMatch_(s);
+      if (!prompt) return s;
+
+      var start = prompt.index + prompt[0].length;
+      var out = s.slice(0, start);
+      if (out && out.charAt(out.length - 1) !== '\n' && s.charAt(start) !== '\n') out += '\n';
+
+      // Carry bracket depth from the question text into the statement tail so
+      // punctuation in parenthetical explanations never creates a new line.
+      var depth = 0;
+      for (var p = 0; p < start; p++) {
+        var prefixChar = s.charAt(p);
+        if (isOpeningStatementBracket_(prefixChar)) depth++;
+        else if (isClosingStatementBracket_(prefixChar)) depth = Math.max(0, depth - 1);
+      }
+      for (var i = start; i < s.length; i++) {
+        var ch = s.charAt(i);
+        if (isOpeningStatementBracket_(ch)) depth++;
+        else if (isClosingStatementBracket_(ch)) depth = Math.max(0, depth - 1);
+        out += ch;
+        if (ch === '。' && depth === 0 && s.charAt(i + 1) !== '\n') out += '\n';
+      }
+      return out;
+    }
+
+    function shouldFormatStatementBreaks_(stem) {
+      var s = String(stem || '').replace(/\r\n?/g, '\n');
+      if (isCountQuestionStem_(s)) {
+        return hasStatementListMarkers_(s) || hasUnlabelledCountStatements_(s);
+      }
+      if (isCombinationQuestionStem_(s)) {
+        return hasStatementListMarkers_(s) || hasUnlabelledCombinationStatements_(s);
+      }
+      return false;
+    }
+
+    function formatStatementBreaks_(stem) {
+      var s = String(stem || '').replace(/\r\n?/g, '\n');
+      // Some imported/display text uses "//ア" as an item separator. Convert it
+      // at the presentation boundary; the stored question text remains intact.
+      s = s.replace(/(^|[^/])\/\/[ \t\u3000]*(?=[ア-オ][ \t\u3000])/g, function(_, prefix) {
+        return prefix ? prefix + '\n' : '';
+      });
+      // Keep parenthesized labels such as （ア） on their own display line.
+      s = s.replace(/([^\n])[ \t\u3000]*([（(][ア-オ][）)])/g, '$1\n$2');
+      // Keep numbered statements such as "1. ... 2. ..." on separate lines.
+      s = s.replace(/(^|[。！？\n])[ \t\u3000]*([1-9])([.．])(?=[ \t\u3000]|[^\d])/g, '$1\n$2$3');
+      // Unlabelled historical rows are split only after the question prompt,
+      // at top-level sentence boundaries (never inside bracketed text).
+      if (!hasStatementListMarkers_(s)) s = insertSafeStatementBreaks_(s);
+
+      // A few legacy rows lost punctuation between statements during import,
+      // but their boundaries are unambiguous from the repeated/known starts.
+      if (/Bが喫茶店で当該宅地の買受けの申込みをした場合において、/.test(s)) {
+        s = s.replace(/([^。\n])(?=Bが喫茶店で当該宅地の買受けの申込みをした場合において、)/g, '$1\n');
+        s = s.replace(/([^。\n])(?=Aの事務所ではないがAが継続的に業務を行うことができる施設があり)/g, '$1\n');
+      }
+      if (/設計図書、点検記録[\s\S]*契約の解除に関する[\s\S]*天災その他不可抗力/.test(s)) {
+        s = s.replace(/([^\n])(?=設計図書、点検記録)/g, '$1\n');
+        s = s.replace(/([^\n])(?=契約の解除に関する)/g, '$1\n');
+        s = s.replace(/([^\n])(?=天災その他不可抗力)/g, '$1\n');
+      }
+      if (/建物が種類又は品質に関して契約の内容に適合しない場合[\s\S]*当事者の氏名（法人にあっては、その名称）及び住所[\s\S]*建物の引渡しの時期[\s\S]*建物の構造耐力上主要な部分等の状況/.test(s)) {
+        s = s.replace(/([^\n])(?=当事者の氏名（法人にあっては、その名称）及び住所)/g, '$1\n');
+        s = s.replace(/([^\n])(?=建物の引渡しの時期)/g, '$1\n');
+        s = s.replace(/([^\n])(?=建物の構造耐力上主要な部分等の状況)/g, '$1\n');
+      }
+      return s;
+    }
+
+    function fmtStem(stem) {
+      var keepStatementBreaks = shouldFormatStatementBreaks_(stem);
+      var s = keepStatementBreaks ? formatStatementBreaks_(stem) : String(stem || '');
+      s = s
         .replace(/(。)\s*([①-⑳])/g, '$1\n$2')
-        .replace(/(。)\s*・/g, '$1\n・')
-        .replace(/\n(?![・1-9①-⑳])/g, '')
-        .replace(/(\n|。)([1-9])(?=[^\d\s.．〜～・（「])/g, '$1$2．');
+        .replace(/(。)\s*・/g, '$1\n・');
+      if (keepStatementBreaks) {
+        s = s.replace(/\n{2,}/g, '\n');
+      } else {
+        s = s.replace(/\n(?![・1-9①-⑳])/g, '');
+      }
+      s = s.replace(/(\n|。)([1-9])(?=[^\d\s.．〜～・（「])/g, '$1$2．');
       return boldMarkers(escapeHtml(s)).replace(/\n/g, '<br>');
     }
     function boldMarkers(text) {
