@@ -17,6 +17,7 @@ function makeContext(role) {
   };
   const ctx = {
     console,
+    Logger: { log() {} },
     APP_IMAGE_FOLDER_NAME_: 'test-images',
     SHEETS: { QuestionBank: 'QuestionBank', Attempts: 'Attempts' },
     HEADERS: { QuestionBank: ['qId', 'explainA'] },
@@ -24,6 +25,26 @@ function makeContext(role) {
     requireAdmin_(userCtx) {
       if (!userCtx || userCtx.role !== 'admin') throw new Error('管理者権限が必要です');
     },
+    requireActiveUser_(userCtx) {
+      if (!userCtx || !['user', 'manager', 'admin'].includes(userCtx.role)) throw new Error('ログインが必要です');
+    },
+    findAttemptById_() {
+      return { index: 2, row: { userKey: 'other-user', status: 'started' } };
+    },
+    getConfigMap_() { return {}; },
+    getConfigValue_(_map, _key, fallback) { return fallback; },
+    getNow_() { return new Date('2026-08-21T00:00:00Z'); },
+    formatDateTime_(value) { return value.toISOString(); },
+    isAttemptExpired_() { return false; },
+    getQuestionsByIds_() { return []; },
+    updateAttempt_() { ctx.__submitUpdateCount += 1; },
+    updateTagStats_() {},
+    computeTopWeakTags_() { return []; },
+    getRecentScores_() { return []; },
+    getWrongAnswerRanking_() { return []; },
+    computeFieldStats_() { return []; },
+    generateStudyAdvice_() { return { text: '' }; },
+    __submitUpdateCount: 0,
     LockService: {
       getScriptLock() {
         counters.lock += 1;
@@ -79,6 +100,37 @@ for (const denied of [
 assert.match(htmlSource, /\.apiAdminDryRunCsv\(sheet, csv, getClientUserKey\(\)\)/);
 assert.match(htmlSource, /\.apiAdminImportCsv\(sheet, csv, getClientUserKey\(\)\)/);
 assert.match(htmlSource, /\.apiImportExplanations\(csv, getClientUserKey\(\)\)/);
+assert.match(htmlSource, /\.apiLogClientAuthIssue\(payload, getClientUserKey\(\)\)/);
+assert.match(htmlSource, /\.apiSubmitTest\([^]*getClientUserKey\(\)\)/);
+assert.match(htmlSource, /\.apiSubmitPractice\([^]*getClientUserKey\(\)\)/);
+
+{
+  const { ctx, counters } = makeContext('');
+  assert.throws(() => ctx.apiSubmitTest({ attemptId: 'x', answers: [] }, ''), /ログイン/);
+  assert.equal(counters.lock, 0, 'unauthenticated submit must stop before lock/write');
+  const logResult = ctx.apiLogClientAuthIssue({ issueType: 'test' }, '');
+  assert.equal(logResult.persisted, false, 'unauthenticated telemetry must not write to Sheets');
+}
+
+{
+  const { ctx, counters } = makeContext('user');
+  const result = ctx.apiSubmitTest({ attemptId: 'other-attempt', answers: [] }, 'user-key');
+  assert.equal(result._error, true, 'another user attempt must be rejected');
+  assert.equal(counters.append, 0);
+  assert.equal(counters.setValues, 0);
+}
+
+{
+  const { ctx } = makeContext('user');
+  ctx.findAttemptById_ = () => ({
+    index: 2,
+    row: { userKey: 'user-key', status: 'started', mode: 'practice', testIndex: '' },
+  });
+  ctx.updateAttempt_ = () => { ctx.__submitUpdateCount += 1; };
+  const result = ctx.apiSubmitTest({ attemptId: 'own-attempt', answers: [] }, 'user-key');
+  assert.equal(result.status, 'submitted', 'owner must still be able to submit');
+  assert.equal(ctx.__submitUpdateCount, 1);
+}
 
 const maintenanceSources = [
   fs.readFileSync(new URL('../src/importCsv.gs', import.meta.url), 'utf8'),

@@ -184,10 +184,22 @@ function trimAuthLogSheet_(sh) {
   }
 }
 
-function apiLogClientAuthIssue(payload) {
+function apiLogClientAuthIssue(payload, clientUserKey) {
   try {
     var logPayload = normalizeClientAuthLogPayload_(payload);
     Logger.log('[CLIENT_AUTH_ISSUE] ' + JSON.stringify(logPayload));
+    var canPersist = false;
+    if (clientUserKey) {
+      try {
+        __clientUserKey = clientUserKey;
+        var userCtx = getUserContext_();
+        requireActiveUser_(userCtx);
+        canPersist = true;
+      } catch (authError) {
+        canPersist = false;
+      }
+    }
+    if (!canPersist) return { ok: true, persisted: false };
     try {
       var logSheet = getAuthLogSheet_();
       trimAuthLogSheet_(logSheet);
@@ -210,7 +222,7 @@ function apiLogClientAuthIssue(payload) {
     } catch (sheetError) {
       Logger.log('[CLIENT_AUTH_ISSUE_SHEET_ERROR] ' + String(sheetError && sheetError.message ? sheetError.message : sheetError));
     }
-    return { ok: true };
+    return { ok: true, persisted: true };
   } catch (e) {
     Logger.log('[CLIENT_AUTH_ISSUE_ERROR] ' + String(e && e.message ? e.message : e));
     return { ok: false };
@@ -646,7 +658,10 @@ function getTestSet_(testIndex, plan, config) {
   }
 }
 
-function apiSubmitTest(payload) {
+function apiSubmitTest(payload, clientUserKey) {
+  __clientUserKey = clientUserKey || '';
+  var userCtx = getUserContext_();
+  requireActiveUser_(userCtx);
   var lock = LockService.getScriptLock();
   lock.waitLock(30000);
   try {
@@ -657,6 +672,9 @@ function apiSubmitTest(payload) {
     if (!attemptInfo) throw new Error('Attemptが見つかりません');
 
     var attempt = attemptInfo.row;
+    if (String(attempt.userKey || '') !== String(userCtx.userKey || '')) {
+      throw new Error('この試験を提出する権限がありません');
+    }
     if (attempt.status !== 'started') throw new Error('この試験は開始済みではありません');
 
     var config = getConfigMap_();
@@ -889,9 +907,9 @@ function apiStartPractice(tags, limit, clientUserKey) {
   return { attemptId: attemptId, questions: picked.map(toQuestionForClient_) };
 }
 
-function apiSubmitPractice(payload) {
+function apiSubmitPractice(payload, clientUserKey) {
   // reuse submit logic (no endsAt)
-  return apiSubmitTest(payload);
+  return apiSubmitTest(payload, clientUserKey);
 }
 
 function apiImportExplanations(csvText, clientUserKey) {
