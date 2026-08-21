@@ -159,6 +159,16 @@ function takkenR6028ValidateApprovedSpec_() {
       spec.expectedLabelSequence !== 'ア・イ・ウ') {
     throw new Error('approved spec official-source identity mismatch');
   }
+  if (spec.liveDiagnosticReceiptSha256 !== 'b73cffb1a1e5cf43fc5894edb5107c20d5fbc9bd06a39bd280425d344c810925') {
+    throw new Error('approved live diagnostic receipt identity mismatch');
+  }
+  if (!spec.liveDateOnlyFields || spec.liveDateOnlyFields.length !== 1 || spec.liveDateOnlyFields[0] !== 'updatedAt') {
+    throw new Error('approved live date-only contract must be exactly updatedAt');
+  }
+  var liveOverrideKeys = Object.keys(spec.liveBaselineOverrides || {});
+  if (liveOverrideKeys.length !== 1 || liveOverrideKeys[0] !== 'explainLong' || spec.liveBaselineOverrides.explainLong !== '') {
+    throw new Error('approved live baseline must preserve blank explainLong');
+  }
   var seen = {};
   fields.forEach(function(field) {
     if (!TAKKEN_R6_028_ALLOWED_FIELDS_[field] || seen[field]) throw new Error('invalid or duplicate approved field: ' + field);
@@ -180,6 +190,9 @@ function takkenR6028ValidateApprovedSpec_() {
     spec.officialSourceSha256,
     spec.expectedBeforeRuntimeRowSha256,
     spec.expectedAfterRuntimeRowSha256,
+    spec.sourceBeforeRuntimeRowSha256,
+    spec.sourceAfterRuntimeRowSha256,
+    spec.liveDiagnosticReceiptSha256,
     spec.beforeValuesSha256,
     spec.replacementValuesSha256,
     spec.approvalEvidenceSha256
@@ -201,8 +214,11 @@ function takkenR6028ReadInventory_() {
   if (expectedDbId && loadedDbId !== expectedDbId) throw new Error('loaded Spreadsheet object does not match planned DB');
   var sheet = spreadsheet.getSheetByName(SHEETS.QuestionBank);
   if (!sheet) throw new Error('QuestionBank sheet not found');
-  var values = sheet.getDataRange().getValues();
+  var dataRange = sheet.getDataRange();
+  var values = dataRange.getValues();
+  var displayValues = dataRange.getDisplayValues();
   if (values.length !== TAKKEN_R6_028_TOTAL_COUNT_ + 1) throw new Error('QuestionBank must contain exactly 600 data rows');
+  if (displayValues.length !== values.length) throw new Error('QuestionBank display/value row count mismatch');
   var headers = values[0].map(function(value, index) { return normalizeHeader_(value, index); });
   var expectedHeaders = HEADERS[SHEETS.QuestionBank];
   if (headers.join('\t') !== expectedHeaders.join('\t')) throw new Error('QuestionBank header mismatch');
@@ -216,8 +232,9 @@ function takkenR6028ReadInventory_() {
     if (row.length !== headers.length) throw new Error('QuestionBank row width mismatch at ' + (rowIndex + 1));
     var qId = String(row[index.qId] || '').trim();
     if (!qId || Object.prototype.hasOwnProperty.call(byId, qId)) throw new Error('blank or duplicate qId: ' + qId);
+    if (!displayValues[rowIndex] || displayValues[rowIndex].length !== headers.length) throw new Error('QuestionBank display row width mismatch at ' + (rowIndex + 1));
     var rowSha256 = takkenR6028FullRowSha256_(row, headers);
-    byId[qId] = { row: row.slice(), sheetRow: rowIndex + 1, rowSha256: rowSha256 };
+    byId[qId] = { row: row.slice(), displayRow: displayValues[rowIndex].slice(), sheetRow: rowIndex + 1, rowSha256: rowSha256 };
     rowFingerprints[qId] = { rowSha256: rowSha256, sheetRow: rowIndex + 1 };
     orderedQIds.push(qId);
   }
@@ -248,11 +265,19 @@ function takkenR6028BuildPlan_() {
   var spec = TAKKEN_R6_028_RELEASE_SPEC_;
   var target = inventory.byId[TAKKEN_R6_028_TARGET_QID_];
   if (target.rowSha256 !== spec.expectedBeforeRuntimeRowSha256) throw new Error('expected-before full-row hash mismatch');
+  if (!takkenR6028IsDateCell_(target.row[inventory.headerIndex.updatedAt])) throw new Error('updatedAt live type mismatch; Date cell required');
+  if (target.displayRow[inventory.headerIndex.updatedAt] !== '2026-04-10') throw new Error('updatedAt display baseline mismatch');
   spec.fieldWhitelist.forEach(function(field) {
     var index = inventory.headerIndex[field];
     if (index === undefined) throw new Error('approved field missing from QuestionBank: ' + field);
-    if (takkenR6028CanonicalText_(target.row[index]) !== takkenR6028CanonicalText_(spec.beforeValues[field])) {
+    if (takkenR6028CanonicalCell_(target.row[index], field) !== takkenR6028CanonicalText_(spec.beforeValues[field])) {
       throw new Error('expected-before field mismatch: ' + field);
+    }
+  });
+  Object.keys(spec.liveBaselineOverrides).forEach(function(field) {
+    var protectedIndex = inventory.headerIndex[field];
+    if (protectedIndex === undefined || takkenR6028CanonicalCell_(target.row[protectedIndex], field) !== spec.liveBaselineOverrides[field]) {
+      throw new Error('approved protected live baseline mismatch: ' + field);
     }
   });
   var beforeRow = target.row.slice();
@@ -381,6 +406,8 @@ function takkenR6028ValidateState_(inventory, plan, state) {
   var expectedRow = state === 'before' ? plan.target.beforeRow : plan.target.afterRow;
   var expectedHash = state === 'before' ? plan.target.beforeRowSha256 : plan.target.afterRowSha256;
   if (!current || current.sheetRow !== plan.target.sheetRow || current.rowSha256 !== expectedHash) throw new Error(state + ' target row/hash mismatch');
+  if (!takkenR6028IsDateCell_(current.row[inventory.headerIndex.updatedAt])) throw new Error(state + ' updatedAt live type mismatch; Date cell required');
+  if (current.displayRow[inventory.headerIndex.updatedAt] !== '2026-04-10') throw new Error(state + ' updatedAt display baseline mismatch');
   if (state === 'after') {
     takkenR6028AssertOnlyWhitelistedChanged_(plan.target.beforeRow, expectedRow, inventory.headers, plan.target.fieldWhitelist);
     takkenR6028AssertOnlyWhitelistedChanged_(plan.target.beforeRow, current.row, inventory.headers, plan.target.fieldWhitelist);
@@ -544,6 +571,10 @@ function takkenR6028BuildRollbackPlan_(backup) {
   if (takkenR6028FullRowSha256_(beforeRow, inventory.headers) !== backup.beforeRowSha256 || takkenR6028FullRowSha256_(afterRow, inventory.headers) !== backup.afterRowSha256) throw new Error('backup row hash mismatch');
   var target = inventory.byId[TAKKEN_R6_028_TARGET_QID_];
   if (!target || target.sheetRow !== backup.afterSourceRowNumber || target.rowSha256 !== backup.afterRowSha256) throw new Error('target row/order drift blocks rollback');
+  if (!takkenR6028IsDateCell_(target.row[inventory.headerIndex.updatedAt]) ||
+      !takkenR6028IsDateCell_(backup.beforeRow[inventory.headerIndex.updatedAt])) {
+    throw new Error('updatedAt live type mismatch blocks rollback; Date cell required');
+  }
   var beforeFingerprints = takkenR6028CopyFingerprints_(inventory.rowFingerprints);
   beforeFingerprints[TAKKEN_R6_028_TARGET_QID_].rowSha256 = backup.beforeRowSha256;
   return {
@@ -603,16 +634,21 @@ function takkenR6028ClearQuestionCache_() {
 function takkenR6028FullRowSha256_(row, headers) {
   if (!row || !headers || row.length !== headers.length) throw new Error('full-row hash width mismatch');
   var parts = [];
-  for (var index = 0; index < headers.length; index++) parts.push(headers[index] + '\u001e' + takkenR6028CanonicalCell_(row[index]));
+  for (var index = 0; index < headers.length; index++) parts.push(headers[index] + '\u001e' + takkenR6028CanonicalCell_(row[index], headers[index]));
   return takkenR6028Sha256_(parts.join('\u001f'));
 }
 
-function takkenR6028CanonicalCell_(value) {
+function takkenR6028CanonicalCell_(value, header) {
   if (Object.prototype.toString.call(value) === '[object Date]') {
+    if (header === 'updatedAt') return Utilities.formatDate(value, 'Asia/Tokyo', 'yyyy-MM-dd');
     var hasTime = value.getHours() || value.getMinutes() || value.getSeconds() || value.getMilliseconds();
     return Utilities.formatDate(value, 'Asia/Tokyo', hasTime ? 'yyyy-MM-dd HH:mm:ss' : 'yyyy-MM-dd');
   }
   return takkenR6028CanonicalText_(value);
+}
+
+function takkenR6028IsDateCell_(value) {
+  return Object.prototype.toString.call(value) === '[object Date]' && !isNaN(value.getTime());
 }
 
 function takkenR6028CanonicalText_(value) {

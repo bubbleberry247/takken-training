@@ -6,19 +6,30 @@
 - 変更対象は `stem` 1列のみ。ア・イ・ウの3本文を復元し、公式原文にない後発制度の条件文を除去する。
 - 公式正答は2＝現行key Bと一致。選択肢・正答・解説・画像・source_ref・statusは変更しない。
 - canonical、生成import、GAS specはapproved after状態へ同期済み。
-- 本番QuestionBankは未反映。direct live row export未実施のため、適用前の全行hash preflightが必須。
+- 本番QuestionBankは未反映。read-only診断で本番固有baselineを確定済みだが、適用前の全行hash preflightは引き続き必須。
+
+## source baselineとlive baseline
+
+canonical planeのbefore→after、import planeのbefore→afterは、いずれもR6takken-028の`stem`だけであり、`explainLong`等を変更しない。canonical↔import間にはgeneratorの既存正規化による7列（`segmentId,type,difficulty,tag2,revisionFlag,variantGroupId,updatedAt`）の差があるが、これは本リリースの変更ではなく、テストで固定している。
+
+本番のread-only診断receipt（`data/release-evidence/r6_q28_live_hash_diagnostic.json`、raw-byte SHA-256 `b73cffb1...10925`）で、30列中28列と旧stemはsource premiseに一致し、次の2差異だけを確認した。
+
+- `explainLong`: 本番は空欄。今回の変更対象に加えず、空欄のまま保護する。
+- `updatedAt`: 本番はDate型だが、表示日付はsourceの`2026-04-10`と一致。`updatedAt`に限定してAsia/Tokyoの`yyyy-MM-dd`でcanonical化し、セル自体は変更しない。pre/post/rollbackでDate型そのものも検査し、同じ表示値の文字列化を拒否する。
+
+live semantic hashはbefore `07af011a...301e`、stem置換後 `76907447...b636`。source/import用hashとは別列で台帳管理し、generated GAS specはlive hashだけを本番preflightへ使用する。receiptはraw bytesを固定し、CRLF/BOM/1 byteの変更も拒否する。公式監査5証拠はOS差を除くcanonical hashとし、別ドメインの両者から作るcomposite approval hashが一致しない場合はfail-closedとする。receiptのcheckout bytesを保持するため`.gitattributes`で当該ファイルを`-text`固定する。
 
 ## 公式release ledgerの承認根拠
 
-`work/statement-label-audit-20260821/` の公式監査成果物を正本として、次を固定した。
+公式監査成果物から本文・PIIを除いた最小承認証拠 `data/release-evidence/r6_q28_official_approval.json` をrelease gateの正本として、次を固定した。releaseツールはclean checkoutに存在しない`work/`成果物へ依存しない。
 
 1. `field_whitelist=stem`。
 2. before／replacement stemと両payload hash。
 3. canonical／runtimeのbefore／after全行hash。
 4. RETIO公式PDF hash・問題ページ・公式正答表のkey B。
-5. 監査builder・release ledger・source manifest・work-only payload・summaryの集約evidence hash。
+5. 旧監査成果物の集約hash、レビュー担当・日付（長文本文を再収録しない）。
 
-evidence hashはcheckout時の改行設定に依存しない。各証拠をUTF-8として読み、先頭BOMを1個除去し、`CRLF`／`CR`を`LF`へ統一したBOMなしbytesを個別hash化する。固定ファイル名と個別hashを固定順で集約し、`r6-q28-evidence-v1`のdomain prefix付きで最終hashを作る。
+official evidence hashはcheckout時の改行設定に依存しない。証拠をUTF-8として読み、先頭BOMを1個除去し、`CRLF`／`CR`を`LF`へ統一したBOMなしbytesをhash化し、固定ファイル名と`r6-q28-evidence-v1`のdomain prefixで集約する。live diagnostic receiptはこれと異なりraw bytes一致を要求する。
 
 `release_status=approved` はdry-run可能を意味し、本番反映済みを意味しない。
 
@@ -48,6 +59,8 @@ npm test
 6. receipt、backup、post reread、strict cache invalidation、公開画面を確認し、保守propertyを閉じる。
 
 QuestionBank書込みは、固定whitelistの`stem` 1セルだけを1回のAdvanced Sheets `spreadsheets.batchUpdate`（`updateCells`）で更新する。SpreadsheetApp逐次書込みや全量importへのfallbackはない。
+
+preflight/post-readは`explainLong=""`、`updatedAt`表示値`2026-04-10`、全30列live semantic hashを確認する。stem以外29列と非対象599行は不変でなければならない。
 
 ## 停止条件
 

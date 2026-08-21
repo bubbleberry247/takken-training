@@ -38,6 +38,14 @@ class FakeRange {
     return Array.from({ length: this.numRows }, (_, r) => Array.from({ length: this.numCols }, (_, c) =>
       (this.sheet.data[this.row - 1 + r] || [])[this.col - 1 + c] ?? ''));
   }
+  getDisplayValues() {
+    return this.getValues().map((row, rowOffset) => row.map((value, colOffset) => {
+      if (this.sheet.displayTransform) return this.sheet.displayTransform(value, this.row - 1 + rowOffset, this.col - 1 + colOffset);
+      if (value instanceof Date) return new Date(value.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+      return String(value ?? '');
+    }));
+  }
+  getDisplayValue() { return this.getDisplayValues()[0][0]; }
   setValues(values) {
     const requiredRows = this.row - 1 + values.length;
     const requiredCols = this.col - 1 + Math.max(0, ...values.map((value) => value.length));
@@ -52,7 +60,7 @@ class FakeRange {
 }
 
 class FakeSheet {
-  constructor(data, sheetId = 501) { this.data = data; this.sheetId = sheetId; }
+  constructor(data, sheetId = 501) { this.data = data; this.sheetId = sheetId; this.displayTransform = null; }
   getDataRange() { return new FakeRange(this, 1, 1, this.data.length, this.getLastColumn()); }
   getLastRow() { return this.data.length; }
   getLastColumn() { return this.data[0]?.length || 1; }
@@ -76,6 +84,9 @@ assert.equal(parsed.rows.length, 600);
 
 function makeHarness({ specMode = 'fixture' } = {}) {
   const questionBank = [headers.slice(), ...parsed.rows.map((row) => headers.map((_, index) => row[index] ?? ''))];
+  const liveTarget = questionBank[targetIndex + 1];
+  liveTarget[headers.indexOf('explainLong')] = '';
+  liveTarget[headers.indexOf('updatedAt')] = new Date('2026-04-09T15:00:00.000Z');
   const db = new FakeDb(questionBank);
   const props = new Map([
     ['DB_SPREADSHEET_ID', db.id],
@@ -86,7 +97,7 @@ function makeHarness({ specMode = 'fixture' } = {}) {
   let uuid = 0;
   let cacheClears = 0;
   const fakeSheets = {
-    calls: [], mode: 'normal', beforeBatch: null,
+    calls: [], mode: 'normal', beforeBatch: null, afterBatch: null,
     Spreadsheets: {
       batchUpdate(body, spreadsheetId) {
         fakeSheets.calls.push({ body, spreadsheetId });
@@ -107,6 +118,7 @@ function makeHarness({ specMode = 'fixture' } = {}) {
           if (fakeSheets.mode === 'partialThrow' && requestIndex === 0) throw new Error('simulated unknown partial response');
           replies.push({ updateCells: {} });
         }
+        if (fakeSheets.afterBatch) { const hook = fakeSheets.afterBatch; fakeSheets.afterBatch = null; hook(); }
         if (fakeSheets.mode === 'badReply') {
           fakeSheets.mode = 'normal';
           return { replies: replies.slice(0, Math.max(0, replies.length - 1)) };
@@ -124,8 +136,10 @@ function makeHarness({ specMode = 'fixture' } = {}) {
       DigestAlgorithm: { SHA_256: 'sha256' }, Charset: { UTF_8: 'utf8' },
       computeDigest(_algorithm, value) { return Array.from(crypto.createHash('sha256').update(String(value), 'utf8').digest()); },
       formatDate(value, _timezone, pattern) {
-        const iso = value.toISOString();
-        return pattern === 'yyyy-MM-dd' ? iso.slice(0, 10) : iso.slice(0, 19).replace('T', ' ');
+        const local = new Date(value.getTime() + 9 * 60 * 60 * 1000);
+        const date = local.toISOString().slice(0, 10);
+        const time = local.toISOString().slice(11, 19);
+        return pattern === 'yyyy-MM-dd' ? date : `${date} ${time}`;
       },
       getUuid() { uuid += 1; return `fixture-${uuid}`; },
     },
@@ -169,6 +183,11 @@ function makeHarness({ specMode = 'fixture' } = {}) {
       officialSourcePage: 16,
       sourceKind: 'RETIO_official_question_pdf',
       expectedLabelSequence: 'ア・イ・ウ',
+      sourceBeforeRuntimeRowSha256: 'a'.repeat(64),
+      sourceAfterRuntimeRowSha256: 'b'.repeat(64),
+      liveBaselineOverrides: { explainLong: '' },
+      liveDateOnlyFields: ['updatedAt'],
+      liveDiagnosticReceiptSha256: 'b73cffb1a1e5cf43fc5894edb5107c20d5fbc9bd06a39bd280425d344c810925',
       expectedBeforeRuntimeRowSha256: context.takkenR6028FullRowSha256_(target, headers),
       expectedAfterRuntimeRowSha256: context.takkenR6028FullRowSha256_(afterRow, headers),
       fieldWhitelist,
@@ -240,6 +259,11 @@ protectedFieldHarness.context.TAKKEN_R6_028_RELEASE_SPEC_.fieldWhitelist = ['cho
 assert.throws(() => protectedFieldHarness.context.ADMIN_patchTakkenR6028DryRun_(), /exactly stem/);
 assert.equal(protectedFieldHarness.fakeSheets.calls.length, 0);
 
+const receiptIdentityHarness = makeHarness();
+receiptIdentityHarness.context.TAKKEN_R6_028_RELEASE_SPEC_.liveDiagnosticReceiptSha256 = '0'.repeat(64);
+assert.throws(() => receiptIdentityHarness.context.ADMIN_patchTakkenR6028DryRun_(), /receipt identity mismatch/);
+assert.equal(receiptIdentityHarness.fakeSheets.calls.length, 0);
+
 // The checked-in official release spec contains one approved stem payload and
 // validates against the preserved pre-production row fixture.
 const checkedInHarness = makeHarness({ specMode: 'checked-in' });
@@ -251,6 +275,34 @@ assert.equal(checkedInDry.wouldUpdate, 1);
 assert.equal(checkedInDry.nonTargetCount, 599);
 assert.equal(checkedInDry.fieldCount, 1);
 assert.equal(checkedInHarness.fakeSheets.calls.length, 0);
+assert.equal(checkedInHarness.context.takkenR6028CanonicalCell_(
+  new Date('2026-04-09T15:00:00.000Z'), 'updatedAt'), '2026-04-10');
+assert.equal(checkedInHarness.context.takkenR6028CanonicalCell_(
+  new Date('2026-04-09T14:59:59.000Z'), 'updatedAt'), '2026-04-09');
+
+// A date-only string and the diagnosed live Date object have the same semantic
+// hash, but the patch requires the live Sheet value to remain a Date object.
+const dateStringHarness = makeHarness({ specMode: 'checked-in' });
+dateStringHarness.questionBank[targetIndex + 1][headers.indexOf('updatedAt')] = '2026-04-10';
+assert.equal(
+  dateStringHarness.context.takkenR6028FullRowSha256_(dateStringHarness.questionBank[targetIndex + 1], headers),
+  dateStringHarness.context.TAKKEN_R6_028_RELEASE_SPEC_.expectedBeforeRuntimeRowSha256,
+);
+assert.throws(() => dateStringHarness.context.ADMIN_patchTakkenR6028DryRun_(), /updatedAt live type mismatch/);
+const dateBoundaryHarness = makeHarness({ specMode: 'checked-in' });
+dateBoundaryHarness.questionBank[targetIndex + 1][headers.indexOf('updatedAt')] = new Date('2026-04-09T14:59:59.000Z');
+assert.throws(() => dateBoundaryHarness.context.ADMIN_patchTakkenR6028DryRun_(), /expected-before full-row hash mismatch/);
+const displayMismatchHarness = makeHarness({ specMode: 'checked-in' });
+displayMismatchHarness.db.getSheetByName('QuestionBank').displayTransform = (value, rowIndex, colIndex) => {
+  if (rowIndex === targetIndex + 1 && colIndex === headers.indexOf('updatedAt')) return '2026/04/10';
+  if (value instanceof Date) return new Date(value.getTime() + 9 * 60 * 60 * 1000).toISOString().slice(0, 10);
+  return String(value ?? '');
+};
+assert.throws(() => displayMismatchHarness.context.ADMIN_patchTakkenR6028DryRun_(), /updatedAt display baseline mismatch/);
+
+const explainLongHarness = makeHarness({ specMode: 'checked-in' });
+explainLongHarness.questionBank[targetIndex + 1][headers.indexOf('explainLong')] = 'unexpected protected value';
+assert.throws(() => explainLongHarness.context.ADMIN_patchTakkenR6028DryRun_(), /expected-before full-row hash mismatch/);
 
 // The actual checked-in spec writes one stem cell in one atomic request; its
 // choices, official-correct key, explanations, images, provenance, and status
@@ -271,6 +323,15 @@ const checkedInRolledBack = checkedInApplyHarness.context.ADMIN_rollbackLatestTa
 assert.equal(checkedInRolledBack.restored, 1);
 assertOnlyFieldsChanged(checkedInApplyHarness, 'before', ['stem']);
 assert.equal(checkedInApplyHarness.fakeSheets.calls.length, 2);
+
+// A Date-to-string mutation after the atomic stem write is not accepted as an
+// equivalent post-state. No success receipt or second write is permitted.
+const postDateTypeHarness = makeHarness({ specMode: 'checked-in' });
+postDateTypeHarness.fakeSheets.afterBatch = () => {
+  postDateTypeHarness.questionBank[targetIndex + 1][headers.indexOf('updatedAt')] = '2026-04-10';
+};
+assert.throws(() => postDateTypeHarness.context.ADMIN_applyTakkenR6028_(), /manual review|required|unknown\/partial/);
+assert.equal(postDateTypeHarness.fakeSheets.calls.length, 1);
 
 // Approved-fixture dry-run must be one target, 599 non-targets, no mutation.
 const dryHarness = makeHarness();
@@ -364,6 +425,14 @@ assertOnlyApprovedFieldsChanged(rollbackHarness, 'before');
 assert.equal(rollbackHarness.fakeSheets.calls.length, 2);
 assert.equal(rollbackHarness.cacheClears, 2);
 
+// Manual rollback rejects protected Date-to-string drift before another API
+// call, although date-only semantic hashing intentionally yields the same hash.
+const rollbackDateTypeHarness = makeHarness({ specMode: 'checked-in' });
+rollbackDateTypeHarness.context.ADMIN_applyTakkenR6028_();
+rollbackDateTypeHarness.questionBank[targetIndex + 1][headers.indexOf('updatedAt')] = '2026-04-10';
+assert.throws(() => rollbackDateTypeHarness.context.ADMIN_rollbackLatestTakkenR6028DryRun_(), /updatedAt live type mismatch|drift blocks rollback/);
+assert.equal(rollbackDateTypeHarness.fakeSheets.calls.length, 1);
+
 // Non-target drift blocks rollback before any second API call.
 const driftHarness = makeHarness();
 driftHarness.context.ADMIN_applyTakkenR6028_();
@@ -395,7 +464,7 @@ assert.equal(cacheHarness.fakeSheets.calls.length, 2);
 
 console.log(JSON.stringify({
   ok: true,
-  tests: 80,
+  tests: 93,
   checkedInReleaseStatus: checkedInHarness.context.TAKKEN_R6_028_RELEASE_SPEC_.releaseStatus,
   checkedInPayloadFields: checkedInDry.fieldCount,
   dryRunMatched: dry.matched,

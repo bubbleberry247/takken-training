@@ -1,4 +1,5 @@
 import csv
+import datetime as dt
 import importlib.util
 import json
 import tempfile
@@ -40,12 +41,93 @@ source_bytes_before = release.SOURCE.read_bytes()
 release.write_source(checked_in)
 assert release.SOURCE.read_bytes() == source_bytes_before
 
+# Header-aware date canonicalization matches the live Asia/Tokyo date cell and
+# is stable across the UTC midnight boundary. Strings remain exact strings.
+assert release.canonical_cell("2026-04-10", "updatedAt") == "2026-04-10"
+assert release.canonical_cell(dt.datetime(2026, 4, 9, 15, 0, tzinfo=dt.timezone.utc), "updatedAt") == "2026-04-10"
+assert release.canonical_cell(dt.datetime(2026, 4, 9, 14, 59, 59, tzinfo=dt.timezone.utc), "updatedAt") == "2026-04-09"
+assert release.canonical_cell(dt.datetime(2026, 4, 10, 0, 0, tzinfo=release.JST), "updatedAt") == "2026-04-10"
+assert release.canonical_cell(dt.datetime(2026, 4, 9, 15, 0, tzinfo=dt.timezone.utc), "other") == "2026-04-10"
+assert release.normalize_headers([" qId ", "updatedAt "]) == ["qId", "updatedAt"]
+for bad_headers in (["qId", " qId "], ["qId", " "]):
+    try:
+        release.normalize_headers(list(bad_headers))
+        raise AssertionError("invalid normalized headers were accepted")
+    except ValueError as exc:
+        assert "unique nonblank" in str(exc)
+try:
+    release.canonical_cell(dt.datetime(2026, 4, 10), "updatedAt")
+    raise AssertionError("naive datetime was accepted")
+except ValueError as exc:
+    assert "naive datetime" in str(exc)
+
+# The exact read-only diagnostic receipt is approval evidence; missing or
+# byte-modified evidence fails closed.
+assert release.validate_live_diagnostic_receipt()["databaseChanged"] is False
+with tempfile.TemporaryDirectory(prefix="r6-028-live-receipt-") as receipt_tmp_name:
+    original_receipt_path = release.LIVE_DIAGNOSTIC_RECEIPT
+    try:
+        missing_path = Path(receipt_tmp_name) / "missing.json"
+        release.LIVE_DIAGNOSTIC_RECEIPT = missing_path
+        try:
+            release.validate_live_diagnostic_receipt()
+            raise AssertionError("missing live receipt was accepted")
+        except ValueError as exc:
+            assert "missing" in str(exc)
+        crlf_path = Path(receipt_tmp_name) / ("crlf-" + original_receipt_path.name)
+        canonical_receipt = release.canonical_evidence_bytes(original_receipt_path.read_bytes())
+        crlf_path.write_bytes(canonical_receipt.replace(b"\n", b"\r\n"))
+        release.LIVE_DIAGNOSTIC_RECEIPT = crlf_path
+        try:
+            release.validate_live_diagnostic_receipt()
+            raise AssertionError("CRLF-modified raw receipt was accepted")
+        except ValueError as exc:
+            assert "SHA-256 mismatch" in str(exc)
+        bom_path = Path(receipt_tmp_name) / ("bom-" + original_receipt_path.name)
+        bom_path.write_bytes(release.UTF8_BOM + original_receipt_path.read_bytes())
+        release.LIVE_DIAGNOSTIC_RECEIPT = bom_path
+        try:
+            release.validate_live_diagnostic_receipt()
+            raise AssertionError("BOM-prefixed raw receipt was accepted")
+        except ValueError as exc:
+            assert "SHA-256 mismatch" in str(exc)
+        tampered_path = Path(receipt_tmp_name) / original_receipt_path.name
+        tampered_path.write_bytes(original_receipt_path.read_bytes() + b"\n")
+        release.LIVE_DIAGNOSTIC_RECEIPT = tampered_path
+        try:
+            release.validate_live_diagnostic_receipt()
+            raise AssertionError("tampered live receipt was accepted")
+        except ValueError as exc:
+            assert "SHA-256 mismatch" in str(exc)
+    finally:
+        release.LIVE_DIAGNOSTIC_RECEIPT = original_receipt_path
+
+# Each data plane changes only stem from its own approved before state to its
+# approved after state. Cross-plane generator enrichment is a separate,
+# pre-existing seven-column normalization contract.
+source_headers_now, source_rows_now = read_csv(release.SOURCE)
+import_headers_now, import_rows_now = read_csv(release.IMPORT)
+source_after_now = next(row for row in source_rows_now if row["qId"] == release.QID)
+import_after_now = next(row for row in import_rows_now if row["qId"] == release.QID)
+before_stem = json.loads(checked_in["ledger"]["before_values_json"])["stem"]
+for plane_name, after_row in (("canonical", source_after_now), ("import", import_after_now)):
+    before_row = dict(after_row)
+    before_row["stem"] = before_stem
+    changed = [header for header in source_headers_now if before_row[header] != after_row[header]]
+    assert changed == ["stem"], (plane_name, changed)
+expected_cross_plane_enrichment = {
+    "segmentId", "type", "difficulty", "tag2", "revisionFlag", "variantGroupId", "updatedAt",
+}
+actual_cross_plane_differences = {
+    header for header in source_headers_now if source_after_now[header] != import_after_now[header]
+}
+assert actual_cross_plane_differences == expected_cross_plane_enrichment
+
 # Evidence identity is based on canonical UTF-8 text, not checkout bytes.
 # A leading UTF-8 BOM is ignored and CRLF/CR are normalized to LF.
 current_evidence_hash = release.work_evidence_sha256()
 evidence_paths = [
-    release.WORK_BUILDER, release.WORK_LEDGER, release.WORK_MANIFEST,
-    release.WORK_PAYLOAD, release.WORK_SUMMARY,
+    release.OFFICIAL_APPROVAL_EVIDENCE,
 ]
 canonical_evidence = {
     path.name: release.canonical_evidence_bytes(path.read_bytes())
@@ -101,26 +183,23 @@ with tempfile.TemporaryDirectory(prefix="r6-028-release-test-") as tmp_name:
     spec_path = tmp / "spec.gs"
     source_headers, source_rows = read_csv(ROOT / "data" / "takken_all_final.csv")
     import_headers, import_rows = read_csv(ROOT / "data" / "takken_questionbank_import.csv")
+    source_target = next(row for row in source_rows if row["qId"] == release.QID)
+    import_target = next(row for row in import_rows if row["qId"] == release.QID)
+    ledger_headers, ledger_rows = read_csv(ROOT / "data" / "r6_takken_028_release_ledger.csv")
+    approved_row = dict(ledger_rows[0])
+    whitelist = ["stem"]
+    before = json.loads(approved_row["before_values_json"])
+    replacement = json.loads(approved_row["replacement_values_json"])
+    after_source = dict(source_target)
+    after_import = dict(import_target)
+    source_target.update(before)
+    import_target.update(before)
     write_csv(source_path, source_headers, source_rows)
     write_csv(import_path, import_headers, import_rows)
 
-    source_target = next(row for row in source_rows if row["qId"] == release.QID)
-    import_target = next(row for row in import_rows if row["qId"] == release.QID)
-    whitelist = ["stem"]
-    before = {field: source_target[field] for field in whitelist}
-    assert before == {field: import_target[field] for field in whitelist}
-    replacement = {"stem": before["stem"] + "\n\nTEST-APPROVED-STATEMENTS"}
-    after_source = dict(source_target)
-    after_import = dict(import_target)
-    after_source.update(replacement)
-    after_import.update(replacement)
-
-    ledger_headers, ledger_rows = read_csv(ROOT / "data" / "r6_takken_028_release_ledger.csv")
-    blocked_row = dict(ledger_rows[0])
+    blocked_row = dict(approved_row)
     blocked_row.update({
         "release_status": "blocked",
-        "expected_before_source_row_sha256": release.row_sha256(source_target, source_headers),
-        "expected_before_runtime_row_sha256": release.row_sha256(import_target, import_headers),
         "field_whitelist": "",
         "before_values_json": "",
         "replacement_values_json": "",
@@ -132,24 +211,10 @@ with tempfile.TemporaryDirectory(prefix="r6-028-release-test-") as tmp_name:
         "reviewed_at": "",
         "approval_evidence_sha256": "",
     })
+    for column in release.LIVE_LEDGER_COLUMNS:
+        blocked_row[column] = ""
     write_csv(ledger_path, ledger_headers, [blocked_row])
 
-    approved_row = dict(ledger_rows[0])
-    approved_row.update({
-        "release_status": "approved",
-        "expected_before_source_row_sha256": release.row_sha256(source_target, source_headers),
-        "expected_before_runtime_row_sha256": release.row_sha256(import_target, import_headers),
-        "field_whitelist": ",".join(whitelist),
-        "before_values_json": json.dumps(before, ensure_ascii=False, separators=(",", ":")),
-        "replacement_values_json": json.dumps(replacement, ensure_ascii=False, separators=(",", ":")),
-        "before_values_sha256": release.values_sha256(before, whitelist),
-        "replacement_values_sha256": release.values_sha256(replacement, whitelist),
-        "expected_after_source_row_sha256": release.row_sha256(after_source, source_headers),
-        "expected_after_runtime_row_sha256": release.row_sha256(after_import, import_headers),
-        "reviewer": "TEST-REVIEWER",
-        "reviewed_at": "2099-01-01T00:00:00+09:00",
-        "approval_evidence_sha256": "c" * 64,
-    })
     original_paths = release.LEDGER, release.SOURCE, release.IMPORT, release.SPEC
     release.LEDGER, release.SOURCE, release.IMPORT, release.SPEC = ledger_path, source_path, import_path, spec_path
     try:
@@ -168,7 +233,7 @@ with tempfile.TemporaryDirectory(prefix="r6-028-release-test-") as tmp_name:
         assert approved["whitelist"] == whitelist
         generated = release.generated_spec(approved)
         assert '"releaseStatus": "approved"' in generated
-        assert "TEST-APPROVED-STATEMENTS" in generated
+        assert release.OFFICIAL_REPLACEMENT_STEM_SHA256 == release.sha256_text(replacement["stem"])
 
         # Canonical synchronization is explicit and content-addressed.
         release.write_source(approved)
@@ -213,6 +278,8 @@ with tempfile.TemporaryDirectory(prefix="r6-028-release-test-") as tmp_name:
 
         stale = dict(approved_row)
         stale["expected_before_source_row_sha256"] = "0" * 64
+        source_target.update(before)
+        import_target.update(before)
         write_csv(source_path, source_headers, source_rows)
         write_csv(import_path, import_headers, import_rows)
         write_csv(ledger_path, ledger_headers, [stale])
@@ -220,7 +287,7 @@ with tempfile.TemporaryDirectory(prefix="r6-028-release-test-") as tmp_name:
             release.validate_release()
             raise AssertionError("stale full-row hash was accepted")
         except ValueError as exc:
-            assert "neither approved before nor approved after" in str(exc)
+            assert "plane hash identity mismatch" in str(exc)
 
         duplicate_rows = source_rows + [dict(source_target)]
         write_csv(source_path, source_headers, duplicate_rows)
@@ -235,10 +302,11 @@ with tempfile.TemporaryDirectory(prefix="r6-028-release-test-") as tmp_name:
 
 print(json.dumps({
     "ok": True,
-    "tests": 40,
+    "tests": 58,
     "checkedInStatus": checked_in["status"],
     "checkedInPayloadFields": len(checked_in["whitelist"]),
     "approvedFixtureFields": 1,
     "evidenceCheckoutFixtures": 6,
+    "liveBaseline": "receipt-bound; explainLong blank; updatedAt date-only",
     "sourceSync": "before-to-after full-row hash verified",
 }))

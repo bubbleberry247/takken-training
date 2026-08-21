@@ -8,6 +8,7 @@ from __future__ import annotations
 
 import argparse
 import csv
+import datetime as dt
 import hashlib
 import json
 import re
@@ -20,12 +21,13 @@ LEDGER = ROOT / "data" / "r6_takken_028_release_ledger.csv"
 SOURCE = ROOT / "data" / "takken_all_final.csv"
 IMPORT = ROOT / "data" / "takken_questionbank_import.csv"
 SPEC = ROOT / "src" / "patchR6Takken028Spec.gs"
-WORK = ROOT / "work" / "statement-label-audit-20260821"
-WORK_PAYLOAD = WORK / "r6_q28_restoration_full_payload.json"
-WORK_LEDGER = WORK / "r6_q28_restoration_release_ledger.csv"
-WORK_MANIFEST = WORK / "r6_q28_restoration_source_manifest.json"
-WORK_SUMMARY = WORK / "r6_q28_restoration_summary.md"
-WORK_BUILDER = WORK / "build_r6_q28_restoration_audit.py"
+OFFICIAL_APPROVAL_EVIDENCE = ROOT / "data" / "release-evidence" / "r6_q28_official_approval.json"
+LIVE_DIAGNOSTIC_RECEIPT = ROOT / "data" / "release-evidence" / "r6_q28_live_hash_diagnostic.json"
+LIVE_DIAGNOSTIC_RECEIPT_SHA256 = "b73cffb1a1e5cf43fc5894edb5107c20d5fbc9bd06a39bd280425d344c810925"
+LIVE_LEGACY_ROW_SHA256 = "3dc8549a6d8c901e150da72153af4d62293915d241ebfa30286812462ec657c5"
+LIVE_BASELINE_OVERRIDES = {"explainLong": ""}
+LIVE_DATE_ONLY_FIELDS = {"updatedAt"}
+JST = dt.timezone(dt.timedelta(hours=9))
 QID = "R6takken-028"
 ROW_COUNT = 600
 OFFICIAL_URL = "https://www.retio.or.jp/wp-content/uploads/2025/03/R6_question_answer.pdf"
@@ -33,8 +35,20 @@ OFFICIAL_PDF_SHA256 = "82a95815f991567ebc4982b05a15a71f6ec942bd6794c3bafe3bcf9c2
 OFFICIAL_PAGE = "16"
 OFFICIAL_SOURCE_KIND = "RETIO_official_question_pdf"
 OFFICIAL_LABEL_SEQUENCE = "ア・イ・ウ"
+OFFICIAL_BEFORE_STEM_SHA256 = "b60adafe1fbaf4d3d0e5056698486f62b76698fcd06baadf22f1c6fec11a331c"
+OFFICIAL_REPLACEMENT_STEM_SHA256 = "9f9907be1958fc9c649703194535907f5aea38f46cfc436766dc5c7dba470f76"
+SOURCE_BEFORE_ROW_SHA256 = "40d1a773246688d0e112fc43f0a0f044a54510608ada290a55d405a99a6e347b"
+SOURCE_AFTER_ROW_SHA256 = "63904f97af8af28e9d10bf191dd1e9afe0610e07078ba9e9d0eb40f5dce6c164"
+IMPORT_BEFORE_ROW_SHA256 = "5531d591e1f07b2bc5b60c1e5f31b46e9723fd781ac2a31d11d12249d82f3919"
+IMPORT_AFTER_ROW_SHA256 = "d60ef8583bbd59b9212e128c601367734d939804f3ae21bb5f3050453168eed9"
+PRIOR_WORK_EVIDENCE_SHA256 = "91ce890fd039bbe69b631daaf667c4f0f363c1a858eeca7b17eca589a6b54757"
 ALLOWED_FIELDS = {"stem"}
 UTF8_BOM = b"\xef\xbb\xbf"
+LIVE_LEDGER_COLUMNS = (
+    "expected_before_live_runtime_row_sha256", "expected_after_live_runtime_row_sha256",
+    "live_baseline_overrides_json", "live_date_only_fields",
+    "official_work_evidence_sha256", "live_diagnostic_receipt_sha256",
+)
 REQUIRED_LEDGER_COLUMNS = {
     "qId", "release_status", "official_source_url", "official_pdf_sha256",
     "pdf_page_1based", "source_kind", "expected_label_sequence",
@@ -42,6 +56,7 @@ REQUIRED_LEDGER_COLUMNS = {
     "field_whitelist", "before_values_json", "replacement_values_json",
     "before_values_sha256", "replacement_values_sha256",
     "expected_after_source_row_sha256", "expected_after_runtime_row_sha256",
+    *LIVE_LEDGER_COLUMNS,
     "reviewer", "reviewed_at", "approval_evidence_sha256", "notes",
 }
 
@@ -52,6 +67,21 @@ def sha256_text(value: str) -> str:
 
 def canonical_text(value: object) -> str:
     return str("" if value is None else value).replace("\r\n", "\n").replace("\r", "\n")
+
+
+def canonical_cell(value: object, header: str) -> str:
+    """Mirror the GAS runtime cell canonicalizer, including date-only fields."""
+    if isinstance(value, dt.datetime):
+        if value.tzinfo is None:
+            raise ValueError(f"naive datetime is not allowed for {header}")
+        localized = value.astimezone(JST)
+        if header in LIVE_DATE_ONLY_FIELDS:
+            return localized.strftime("%Y-%m-%d")
+        has_time = any((localized.hour, localized.minute, localized.second, localized.microsecond))
+        return localized.strftime("%Y-%m-%d %H:%M:%S" if has_time else "%Y-%m-%d")
+    if isinstance(value, dt.date):
+        return value.isoformat()
+    return canonical_text(value)
 
 
 def canonical_evidence_bytes(raw: bytes) -> bytes:
@@ -80,8 +110,8 @@ def evidence_sha256_for_paths(paths: list[Path]) -> str:
     return sha256_text("r6-q28-evidence-v1\n" + "\n".join(entries))
 
 
-def row_sha256(row: dict[str, str], headers: list[str]) -> str:
-    payload = "\x1f".join(f"{header}\x1e{canonical_text(row.get(header, ''))}" for header in headers)
+def row_sha256(row: dict[str, object], headers: list[str]) -> str:
+    payload = "\x1f".join(f"{header}\x1e{canonical_cell(row.get(header, ''), header)}" for header in headers)
     return sha256_text(payload)
 
 
@@ -90,11 +120,26 @@ def values_sha256(values: dict[str, str], whitelist: list[str]) -> str:
     return sha256_text(payload)
 
 
+def normalize_headers(raw_headers: list[object]) -> list[str]:
+    """Mirror GAS normalizeHeader_: BOM is decoded away and every cell trims."""
+    headers = [canonical_text(value).strip() for value in raw_headers]
+    if any(not header for header in headers) or len(headers) != len(set(headers)):
+        raise ValueError("dataset headers must be unique nonblank normalized names")
+    return headers
+
+
 def read_dataset(path: Path) -> tuple[list[str], list[dict[str, str]]]:
     with path.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
-        headers = list(reader.fieldnames or [])
-        rows = list(reader)
+        raw_headers = list(reader.fieldnames or [])
+        headers = normalize_headers(raw_headers)
+        raw_rows = list(reader)
+    if any(None in row for row in raw_rows):
+        raise ValueError(f"{path.name}: row wider than normalized header")
+    rows = [
+        {header: row.get(raw_header, "") for raw_header, header in zip(raw_headers, headers)}
+        for row in raw_rows
+    ]
     if len(rows) != ROW_COUNT:
         raise ValueError(f"{path.name}: expected {ROW_COUNT} rows, got {len(rows)}")
     qids = [row.get("qId", "") for row in rows]
@@ -110,11 +155,11 @@ def find_target(rows: list[dict[str, str]], label: str) -> dict[str, str]:
     return found[0]
 
 
-def read_ledger() -> dict[str, str]:
+def read_ledger(*, allow_missing_live_columns: bool = False) -> dict[str, str]:
     with LEDGER.open("r", encoding="utf-8-sig", newline="") as handle:
         reader = csv.DictReader(handle)
         missing = REQUIRED_LEDGER_COLUMNS - set(reader.fieldnames or [])
-        if missing:
+        if missing and not allow_missing_live_columns:
             raise ValueError("release ledger schema missing: " + ", ".join(sorted(missing)))
         rows = list(reader)
     if len(rows) != 1 or rows[0].get("qId") != QID:
@@ -171,6 +216,9 @@ def validate_release() -> dict[str, object]:
         "field_whitelist", "before_values_json", "replacement_values_json",
         "before_values_sha256", "replacement_values_sha256",
         "expected_after_source_row_sha256", "expected_after_runtime_row_sha256",
+        "expected_before_live_runtime_row_sha256", "expected_after_live_runtime_row_sha256",
+        "live_baseline_overrides_json", "live_date_only_fields",
+        "official_work_evidence_sha256", "live_diagnostic_receipt_sha256",
         "reviewer", "reviewed_at", "approval_evidence_sha256",
     )
     if status == "blocked":
@@ -208,6 +256,8 @@ def validate_release() -> dict[str, object]:
     for name in (
         "before_values_sha256", "replacement_values_sha256",
         "expected_after_source_row_sha256", "expected_after_runtime_row_sha256",
+        "expected_before_live_runtime_row_sha256", "expected_after_live_runtime_row_sha256",
+        "official_work_evidence_sha256", "live_diagnostic_receipt_sha256",
         "approval_evidence_sha256",
     ):
         validate_hash(ledger[name], name)
@@ -217,6 +267,26 @@ def validate_release() -> dict[str, object]:
         raise ValueError("replacement_values_sha256 mismatch")
     if not ledger["reviewer"].strip() or not ledger["reviewed_at"].strip():
         raise ValueError("approved ledger requires reviewer and reviewed_at")
+    live_overrides = parse_payload(ledger["live_baseline_overrides_json"], "live_baseline_overrides_json")
+    if live_overrides != LIVE_BASELINE_OVERRIDES:
+        raise ValueError("approved live baseline overrides must preserve explainLong as blank")
+    if ledger["live_date_only_fields"] != "updatedAt":
+        raise ValueError("approved live date-only contract must be exactly updatedAt")
+    fixed_plane_hashes = {
+        "expected_before_source_row_sha256": SOURCE_BEFORE_ROW_SHA256,
+        "expected_after_source_row_sha256": SOURCE_AFTER_ROW_SHA256,
+        "expected_before_runtime_row_sha256": IMPORT_BEFORE_ROW_SHA256,
+        "expected_after_runtime_row_sha256": IMPORT_AFTER_ROW_SHA256,
+    }
+    if any(ledger[name] != value for name, value in fixed_plane_hashes.items()):
+        raise ValueError("approved source/import plane hash identity mismatch")
+    validate_live_diagnostic_receipt()
+    if ledger["official_work_evidence_sha256"] != work_evidence_sha256():
+        raise ValueError("official work evidence SHA-256 mismatch")
+    if ledger["live_diagnostic_receipt_sha256"] != LIVE_DIAGNOSTIC_RECEIPT_SHA256:
+        raise ValueError("live diagnostic receipt SHA-256 mismatch")
+    if ledger["approval_evidence_sha256"] != release_approval_evidence_sha256():
+        raise ValueError("composite approval evidence SHA-256 mismatch")
 
     def state(row: dict[str, str], row_hash: str, before_hash: str, after_hash: str, label: str) -> str:
         if row_hash == before_hash:
@@ -241,6 +311,21 @@ def validate_release() -> dict[str, object]:
     )
     if source_state != runtime_state:
         raise ValueError("canonical and import are on different release states")
+
+    import_before = dict(import_row)
+    import_after = dict(import_row)
+    import_before["stem"] = before["stem"]
+    import_after["stem"] = replacement["stem"]
+    live_before = dict(import_before)
+    live_after = dict(import_after)
+    live_before.update(live_overrides)
+    live_after.update(live_overrides)
+    if canonical_cell(import_row.get("updatedAt", ""), "updatedAt") != "2026-04-10":
+        raise ValueError("approved updatedAt source baseline changed")
+    if row_sha256(live_before, import_headers) != ledger["expected_before_live_runtime_row_sha256"]:
+        raise ValueError("approved live-before full-row hash mismatch")
+    if row_sha256(live_after, import_headers) != ledger["expected_after_live_runtime_row_sha256"]:
+        raise ValueError("approved live-after full-row hash mismatch")
     return {
         "ledger": ledger,
         "headers": source_headers,
@@ -252,67 +337,138 @@ def validate_release() -> dict[str, object]:
         "runtime_state": runtime_state,
         "source_hash": source_hash,
         "runtime_hash": runtime_hash,
+        "live_before_hash": ledger["expected_before_live_runtime_row_sha256"],
+        "live_after_hash": ledger["expected_after_live_runtime_row_sha256"],
+        "live_overrides": live_overrides,
     }
 
 
+def validate_official_approval_evidence() -> dict[str, object]:
+    if not OFFICIAL_APPROVAL_EVIDENCE.is_file():
+        raise ValueError("minimal official approval evidence is missing")
+    try:
+        evidence = json.loads(OFFICIAL_APPROVAL_EVIDENCE.read_text(encoding="utf-8-sig"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("minimal official approval evidence is invalid") from exc
+    fixed = {
+        "evidenceStatus": "approved_official_source_review", "qId": QID,
+        "officialSourceUrl": OFFICIAL_URL, "officialPdfSha256": OFFICIAL_PDF_SHA256,
+        "questionPage1Based": int(OFFICIAL_PAGE), "sourceKind": OFFICIAL_SOURCE_KIND,
+        "expectedLabelSequence": OFFICIAL_LABEL_SEQUENCE, "officialAnswerKey": "B",
+        "officialAnswerNumber": 2, "fieldWhitelist": ["stem"], "protectedFieldCount": 29,
+        "beforeStemSha256": OFFICIAL_BEFORE_STEM_SHA256,
+        "replacementStemSha256": OFFICIAL_REPLACEMENT_STEM_SHA256,
+        "sourceBeforeRowSha256": SOURCE_BEFORE_ROW_SHA256,
+        "sourceAfterRowSha256": SOURCE_AFTER_ROW_SHA256,
+        "importBeforeRowSha256": IMPORT_BEFORE_ROW_SHA256,
+        "importAfterRowSha256": IMPORT_AFTER_ROW_SHA256,
+        "priorWorkEvidenceSha256": PRIOR_WORK_EVIDENCE_SHA256,
+        "reviewer": "independent_official_source_audit", "reviewedAt": "2026-08-22",
+        "containsQuestionText": False, "containsPii": False,
+    }
+    if not isinstance(evidence, dict) or set(evidence) != set(fixed) or any(evidence.get(key) != value for key, value in fixed.items()):
+        raise ValueError("minimal official approval evidence invariant mismatch")
+    return evidence
+
+
 def work_evidence_sha256() -> str:
-    files = [WORK_BUILDER, WORK_LEDGER, WORK_MANIFEST, WORK_PAYLOAD, WORK_SUMMARY]
-    return evidence_sha256_for_paths(files)
+    validate_official_approval_evidence()
+    return evidence_sha256_for_paths([OFFICIAL_APPROVAL_EVIDENCE])
+
+
+def validate_live_diagnostic_receipt() -> dict[str, object]:
+    if not LIVE_DIAGNOSTIC_RECEIPT.is_file():
+        raise ValueError("approved live diagnostic receipt is missing")
+    raw = LIVE_DIAGNOSTIC_RECEIPT.read_bytes()
+    actual_hash = hashlib.sha256(raw).hexdigest()
+    if actual_hash != LIVE_DIAGNOSTIC_RECEIPT_SHA256:
+        raise ValueError("approved live diagnostic receipt SHA-256 mismatch")
+    try:
+        receipt = json.loads(raw.decode("utf-8-sig"))
+    except (UnicodeDecodeError, json.JSONDecodeError) as exc:
+        raise ValueError("approved live diagnostic receipt is invalid UTF-8 JSON") from exc
+    if not isinstance(receipt, dict):
+        raise ValueError("approved live diagnostic receipt must be an object")
+    fixed = {
+        "receiptStatus": "read_only_complete",
+        "project": "takken-training",
+        "target": QID,
+        "sourceSha": "3429ceec1bd12bca5a6679286a28dd7ff64a6eb1",
+        "productionVersion": 65,
+        "readOnly": True,
+        "maintenanceWindow": "ABSENT",
+        "databaseChanged": False,
+        "dbIdMatchesConfigured": True,
+        "rowCount": ROW_COUNT,
+        "uniqueQIds": ROW_COUNT,
+        "targetMatches": 1,
+        "nonTargetCount": ROW_COUNT - 1,
+        "headerCount": 30,
+        "liveRowSha256": LIVE_LEGACY_ROW_SHA256,
+        "expectedRowSha256": "5531d591e1f07b2bc5b60c1e5f31b46e9723fd781ac2a31d11d12249d82f3919",
+        "mismatchCount": 2,
+        "mismatchFields": ["explainLong", "updatedAt"],
+    }
+    for key, expected in fixed.items():
+        if receipt.get(key) != expected:
+            raise ValueError(f"approved live diagnostic receipt invariant mismatch: {key}")
+    checks = receipt.get("specialChecks") or {}
+    if (checks.get("statusEqual") is not True or checks.get("sourceRefEqual") is not True or
+            checks.get("explanationMismatchOnly") != "explainLong" or
+            checks.get("dateSerializationMismatch") != "updatedAt" or
+            checks.get("crlfMismatchFields") != []):
+        raise ValueError("approved live diagnostic special checks mismatch")
+    fields = receipt.get("fields")
+    schema = receipt.get("fieldRecordSchema")
+    if not isinstance(fields, list) or not isinstance(schema, list) or len(fields) != 30:
+        raise ValueError("approved live diagnostic field evidence is incomplete")
+    records = {record[0]: dict(zip(schema, record)) for record in fields if isinstance(record, list) and len(record) == len(schema)}
+    if len(records) != 30 or set(receipt["mismatchFields"]) != {field for field, record in records.items() if record.get("equal") is not True}:
+        raise ValueError("approved live diagnostic field mismatch inventory is inconsistent")
+    if (records.get("stem", {}).get("liveNormalizedSha256") != OFFICIAL_BEFORE_STEM_SHA256 or
+            records.get("explainLong", {}).get("liveNormalizedSha256") != sha256_text("") or
+            records.get("updatedAt", {}).get("liveType") != "date" or
+            receipt.get("updatedAtDisplaySha256") != sha256_text("2026-04-10")):
+        raise ValueError("approved live diagnostic target/type evidence mismatch")
+    return receipt
+
+
+def release_approval_evidence_sha256() -> str:
+    validate_live_diagnostic_receipt()
+    return sha256_text(
+        "r6-q28-release-approval-v2\n"
+        f"official-work:{work_evidence_sha256()}\n"
+        f"live-diagnostic-raw:{LIVE_DIAGNOSTIC_RECEIPT_SHA256}"
+    )
 
 
 def approved_ledger_from_work() -> dict[str, str]:
-    """Translate the independently approved work-only artifacts into one release row.
+    """Revalidate the approved ledger against minimal tracked evidence.
 
-    No text or answer is synthesized here. The only replacement value comes from
-    the official-source payload, and every preserve field/hash is cross-checked.
+    No text or answer is synthesized. The patch payload remains in the release
+    ledger; the evidence bundle contains only source identity and hashes.
     """
-    ledger = read_ledger()
-    payload = json.loads(WORK_PAYLOAD.read_text(encoding="utf-8"))
-    manifest = json.loads(WORK_MANIFEST.read_text(encoding="utf-8"))
-    with WORK_LEDGER.open("r", encoding="utf-8-sig", newline="") as handle:
-        work_rows = list(csv.DictReader(handle))
-    if payload.get("qId") != QID or manifest.get("qId") != QID or len(work_rows) != 18:
-        raise ValueError("approved work evidence target/count mismatch")
-    if payload.get("status") != "approved_restoration_specification_production_apply_requires_live_hash_preflight":
-        raise ValueError("work payload is not an approved restoration specification")
-    if (manifest.get("official_pdf_url") != OFFICIAL_URL or
-            manifest.get("official_pdf_sha256") != OFFICIAL_PDF_SHA256 or
-            str(manifest.get("question_physical_page_1based")) != OFFICIAL_PAGE or
-            manifest.get("answer_key") != "B" or str(manifest.get("answer_number")) != "2"):
-        raise ValueError("work source manifest identity/answer mismatch")
-    if manifest.get("direct_live_row_export") is not False:
-        raise ValueError("work source manifest live-state flag is unexpected")
-
-    if any(row.get("qId") != QID or row.get("release_status") != "approved_spec_pending_live_hash_preflight" for row in work_rows):
-        raise ValueError("work release ledger status/qId mismatch")
-    replace_rows = [row for row in work_rows if row.get("action") == "replace"]
-    preserve_rows = [row for row in work_rows if row.get("action") == "preserve"]
-    if len(replace_rows) != 1 or replace_rows[0].get("field") != "stem" or len(preserve_rows) != 17:
-        raise ValueError("work release ledger must approve stem-only replacement")
-
-    old = payload.get("old") or {}
-    proposed = payload.get("proposed") or {}
-    official = payload.get("official_structure") or {}
-    if not isinstance(old, dict) or not isinstance(proposed, dict):
-        raise ValueError("work payload old/proposed records are invalid")
-    if set(old) != set(proposed) or [field for field in old if canonical_text(old[field]) != canonical_text(proposed[field])] != ["stem"]:
-        raise ValueError("work payload must differ in stem only")
-    before_stem = canonical_text(old.get("stem", ""))
-    replacement_stem = canonical_text(proposed.get("stem", ""))
-    if sha256_text(before_stem) != replace_rows[0].get("old_sha256") or sha256_text(replacement_stem) != replace_rows[0].get("new_sha256"):
-        raise ValueError("work payload stem hashes do not match work release ledger")
+    ledger = read_ledger(allow_missing_live_columns=True)
+    validate_live_diagnostic_receipt()
+    evidence = validate_official_approval_evidence()
+    before_values = parse_payload(ledger.get("before_values_json", ""), "before_values_json")
+    replacement_values = parse_payload(ledger.get("replacement_values_json", ""), "replacement_values_json")
+    if set(before_values) != {"stem"} or set(replacement_values) != {"stem"}:
+        raise ValueError("approved ledger payload must be stem-only")
+    before_stem = canonical_text(before_values["stem"])
+    replacement_stem = canonical_text(replacement_values["stem"])
+    if sha256_text(before_stem) != evidence["beforeStemSha256"] or sha256_text(replacement_stem) != evidence["replacementStemSha256"]:
+        raise ValueError("approved ledger stem hashes do not match minimal evidence")
     if re.findall(r"(?:^|\n)([アイウ])　", replacement_stem) != ["ア", "イ", "ウ"]:
         raise ValueError("approved replacement stem label sequence mismatch")
-    if official.get("correct_key") != "B" or str(official.get("correct_number")) != "2":
-        raise ValueError("approved work payload answer identity mismatch")
 
     source_headers, source_rows = read_dataset(SOURCE)
     import_headers, import_rows = read_dataset(IMPORT)
     source_current = find_target(source_rows, SOURCE.name)
     import_current = find_target(import_rows, IMPORT.name)
     for field in ("choiceA", "choiceB", "choiceC", "choiceD", "choiceE", "correct"):
-        if source_current[field] != import_current[field] or source_current[field] != old[field] or old[field] != proposed[field]:
-            raise ValueError(f"approved preserve field mismatch: {field}")
+        if source_current[field] != import_current[field]:
+            raise ValueError(f"approved preserve field mismatch between planes: {field}")
     if source_current["correct"] != "B":
         raise ValueError("current correct key does not match official B")
 
@@ -333,6 +489,12 @@ def approved_ledger_from_work() -> dict[str, str]:
     import_current_hash = row_sha256(import_current, import_headers)
     expected_after_source = row_sha256(source_after, source_headers)
     expected_after_runtime = row_sha256(import_after, import_headers)
+    live_before = dict(import_before)
+    live_after = dict(import_after)
+    live_before.update(LIVE_BASELINE_OVERRIDES)
+    live_after.update(LIVE_BASELINE_OVERRIDES)
+    expected_before_live_runtime = row_sha256(live_before, import_headers)
+    expected_after_live_runtime = row_sha256(live_after, import_headers)
     if source_current_hash not in {expected_before_source, expected_after_source} or import_current_hash not in {expected_before_runtime, expected_after_runtime}:
         raise ValueError("current canonical/import row has drifted outside approved before/after states")
     if (source_current_hash == expected_before_source) != (import_current_hash == expected_before_runtime):
@@ -351,10 +513,16 @@ def approved_ledger_from_work() -> dict[str, str]:
         "replacement_values_sha256": values_sha256(replacement_values, field_whitelist),
         "expected_after_source_row_sha256": expected_after_source,
         "expected_after_runtime_row_sha256": expected_after_runtime,
-        "reviewer": "independent_official_source_audit",
+        "expected_before_live_runtime_row_sha256": expected_before_live_runtime,
+        "expected_after_live_runtime_row_sha256": expected_after_live_runtime,
+        "live_baseline_overrides_json": json.dumps(LIVE_BASELINE_OVERRIDES, ensure_ascii=False, separators=(",", ":")),
+        "live_date_only_fields": "updatedAt",
+        "official_work_evidence_sha256": work_evidence_sha256(),
+        "live_diagnostic_receipt_sha256": LIVE_DIAGNOSTIC_RECEIPT_SHA256,
+        "reviewer": "independent_official_source_audit+independent_live_baseline_review",
         "reviewed_at": "2026-08-22",
-        "approval_evidence_sha256": work_evidence_sha256(),
-        "notes": "Approved stem-only restoration. Official answer B and all non-stem fields preserved. Production apply still requires direct live full-row hash preflight.",
+        "approval_evidence_sha256": release_approval_evidence_sha256(),
+        "notes": "Approved stem-only restoration with a separately evidenced live baseline. Live explainLong stays blank and updatedAt is date-only canonicalized; all 29 protected fields remain unchanged.",
     })
     return approved
 
@@ -363,6 +531,9 @@ def write_approved_ledger_from_work() -> None:
     approved = approved_ledger_from_work()
     with LEDGER.open("r", encoding="utf-8-sig", newline="") as handle:
         headers = list(csv.DictReader(handle).fieldnames or [])
+    for column in LIVE_LEDGER_COLUMNS:
+        if column not in headers:
+            headers.append(column)
     with LEDGER.open("w", encoding="utf-8-sig", newline="") as handle:
         writer = csv.DictWriter(handle, fieldnames=headers, lineterminator="\n")
         writer.writeheader()
@@ -379,8 +550,13 @@ def generated_spec(validated: dict[str, object]) -> str:
         "officialSourcePage": int(ledger["pdf_page_1based"]),
         "sourceKind": ledger["source_kind"],
         "expectedLabelSequence": ledger["expected_label_sequence"],
-        "expectedBeforeRuntimeRowSha256": ledger["expected_before_runtime_row_sha256"],
-        "expectedAfterRuntimeRowSha256": ledger["expected_after_runtime_row_sha256"],
+        "expectedBeforeRuntimeRowSha256": ledger["expected_before_live_runtime_row_sha256"],
+        "expectedAfterRuntimeRowSha256": ledger["expected_after_live_runtime_row_sha256"],
+        "sourceBeforeRuntimeRowSha256": ledger["expected_before_runtime_row_sha256"],
+        "sourceAfterRuntimeRowSha256": ledger["expected_after_runtime_row_sha256"],
+        "liveBaselineOverrides": validated.get("live_overrides", {}),
+        "liveDateOnlyFields": [field for field in ledger.get("live_date_only_fields", "").split(",") if field],
+        "liveDiagnosticReceiptSha256": ledger.get("live_diagnostic_receipt_sha256", ""),
         "fieldWhitelist": validated["whitelist"],
         "beforeValues": validated["before"],
         "replacementValues": validated["replacement"],

@@ -77,7 +77,34 @@ with tempfile.TemporaryDirectory(prefix="r6-builder-gate-") as tmp_name:
             builder.validate_r6_028_release_state(source_rows, "canonical")
             raise AssertionError("generator accepted a bad payload hash")
         except ValueError as exc:
-            assert "payload hash mismatch" in str(exc)
+            assert "replacement_values_sha256 mismatch" in str(exc) or "payload hash mismatch" in str(exc)
+
+        bad_approval_hash = dict(base)
+        bad_approval_hash["approval_evidence_sha256"] = "0" * 64
+        write_ledger(temp_ledger, ledger_headers, bad_approval_hash)
+        try:
+            builder.validate_r6_028_release_state(source_rows, "canonical")
+            raise AssertionError("generator accepted changed composite approval evidence")
+        except ValueError as exc:
+            assert "composite approval evidence" in str(exc)
+
+        bad_live_override = dict(base)
+        bad_live_override["live_baseline_overrides_json"] = json.dumps({"explainLong": "unexpected"})
+        write_ledger(temp_ledger, ledger_headers, bad_live_override)
+        try:
+            builder.validate_r6_028_release_state(source_rows, "canonical")
+            raise AssertionError("generator accepted changed live protected baseline")
+        except ValueError as exc:
+            assert "live baseline" in str(exc) or "preserve explainLong" in str(exc)
+
+        bad_receipt_hash = dict(base)
+        bad_receipt_hash["live_diagnostic_receipt_sha256"] = "0" * 64
+        write_ledger(temp_ledger, ledger_headers, bad_receipt_hash)
+        try:
+            builder.validate_r6_028_release_state(source_rows, "canonical")
+            raise AssertionError("generator accepted changed live receipt identity")
+        except ValueError as exc:
+            assert "live diagnostic receipt" in str(exc)
 
         no_reviewer = dict(base)
         no_reviewer["reviewer"] = ""
@@ -86,7 +113,7 @@ with tempfile.TemporaryDirectory(prefix="r6-builder-gate-") as tmp_name:
             builder.validate_r6_028_release_state(source_rows, "canonical")
             raise AssertionError("generator accepted missing reviewer")
         except ValueError as exc:
-            assert "reviewer/evidence" in str(exc)
+            assert "reviewer" in str(exc)
 
         blocked_residue = dict(base)
         blocked_residue["release_status"] = "blocked"
@@ -103,7 +130,7 @@ with tempfile.TemporaryDirectory(prefix="r6-builder-gate-") as tmp_name:
 
 print(json.dumps({
     "ok": True,
-    "tests": 9,
+    "tests": 12,
     "standaloneGeneratorGate": True,
-    "rejected": ["protected-field", "choiceA-field", "bad-payload-hash", "missing-reviewer", "blocked-residue"],
+    "rejected": ["protected-field", "choiceA-field", "bad-payload-hash", "approval-evidence", "live-baseline", "live-receipt", "missing-reviewer", "blocked-residue"],
 }))

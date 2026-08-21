@@ -1,5 +1,6 @@
 import csv
 import hashlib
+import importlib.util
 import json
 import sys
 from pathlib import Path
@@ -10,8 +11,12 @@ SRC = ROOT / "data" / "takken_all_final.csv"
 DEST = ROOT / "data" / "takken_questionbank_import.csv"
 STATEMENT_LABEL_LEDGER = ROOT / "data" / "statement_label_corrections.csv"
 R6_028_RELEASE_LEDGER = ROOT / "data" / "r6_takken_028_release_ledger.csv"
+R6_028_LIVE_RECEIPT = ROOT / "data" / "release-evidence" / "r6_q28_live_hash_diagnostic.json"
+R6_028_LIVE_RECEIPT_SHA256 = "b73cffb1a1e5cf43fc5894edb5107c20d5fbc9bd06a39bd280425d344c810925"
+R6_028_OFFICIAL_EVIDENCE = ROOT / "data" / "release-evidence" / "r6_q28_official_approval.json"
 R6_028_QID = "R6takken-028"
 R6_028_ALLOWED_FIELDS = {"stem"}
+R6_028_RELEASE_VALIDATOR = ROOT / "tools" / "r6_takken_028_release.py"
 
 HEADERS = [
     "qId", "segmentId", "type", "difficulty",
@@ -165,7 +170,45 @@ def release_values_sha256(values, whitelist):
     return hashlib.sha256(payload.encode("utf-8")).hexdigest()
 
 
+def canonical_evidence_bytes(raw):
+    if raw.startswith(b"\xef\xbb\xbf"):
+        raw = raw[3:]
+    text = raw.decode("utf-8")
+    return text.replace("\r\n", "\n").replace("\r", "\n").encode("utf-8")
+
+
+def r6_028_work_evidence_sha256():
+    path = R6_028_OFFICIAL_EVIDENCE
+    if not path.is_file():
+        raise ValueError(f"approved R6-028 official evidence is missing: {path.name}")
+    digest = hashlib.sha256(canonical_evidence_bytes(path.read_bytes())).hexdigest()
+    entries = [f"{path.name}:{digest}"]
+    payload = "r6-q28-evidence-v1\n" + "\n".join(entries)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def r6_028_approval_evidence_sha256():
+    payload = (
+        "r6-q28-release-approval-v2\n"
+        f"official-work:{r6_028_work_evidence_sha256()}\n"
+        f"live-diagnostic-raw:{R6_028_LIVE_RECEIPT_SHA256}"
+    )
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def validate_r6_028_shared_release_contract():
+    spec = importlib.util.spec_from_file_location("r6_028_release_shared", R6_028_RELEASE_VALIDATOR)
+    if spec is None or spec.loader is None:
+        raise ValueError("R6-028 shared release validator is unavailable")
+    module = importlib.util.module_from_spec(spec)
+    spec.loader.exec_module(module)
+    module.LEDGER = R6_028_RELEASE_LEDGER
+    module.LIVE_DIAGNOSTIC_RECEIPT = R6_028_LIVE_RECEIPT
+    module.validate_release()
+
+
 def validate_r6_028_release_state(rows, plane):
+    validate_r6_028_shared_release_contract()
     ledger = load_r6_028_release_ledger()
     found = [row for row in rows if row.get("qId") == R6_028_QID]
     if len(found) != 1:
@@ -211,6 +254,31 @@ def validate_r6_028_release_state(rows, plane):
     if (not ledger.get("reviewer", "").strip() or not ledger.get("reviewed_at", "").strip() or
             len(ledger.get("approval_evidence_sha256", "")) != 64):
         raise ValueError("approved R6-028 reviewer/evidence is incomplete")
+    if (ledger.get("official_work_evidence_sha256") != r6_028_work_evidence_sha256() or
+            ledger.get("approval_evidence_sha256") != r6_028_approval_evidence_sha256()):
+        raise ValueError("approved R6-028 composite approval evidence mismatch")
+    required_live_hashes = (
+        "expected_before_live_runtime_row_sha256", "expected_after_live_runtime_row_sha256",
+        "official_work_evidence_sha256", "live_diagnostic_receipt_sha256",
+    )
+    if any(len(ledger.get(name, "")) != 64 for name in required_live_hashes):
+        raise ValueError("approved R6-028 live baseline hashes are incomplete")
+    try:
+        live_overrides = json.loads(ledger.get("live_baseline_overrides_json", ""))
+    except json.JSONDecodeError as exc:
+        raise ValueError("approved R6-028 live baseline overrides are invalid") from exc
+    if live_overrides != {"explainLong": ""} or ledger.get("live_date_only_fields") != "updatedAt":
+        raise ValueError("approved R6-028 live baseline contract mismatch")
+    if (not R6_028_LIVE_RECEIPT.is_file() or
+            hashlib.sha256(R6_028_LIVE_RECEIPT.read_bytes()).hexdigest() != R6_028_LIVE_RECEIPT_SHA256 or
+            ledger.get("live_diagnostic_receipt_sha256") != R6_028_LIVE_RECEIPT_SHA256):
+        raise ValueError("approved R6-028 live diagnostic receipt is missing or changed")
+    live_receipt = json.loads(R6_028_LIVE_RECEIPT.read_text(encoding="utf-8-sig"))
+    if (live_receipt.get("readOnly") is not True or live_receipt.get("databaseChanged") is not False or
+            live_receipt.get("rowCount") != 600 or live_receipt.get("targetMatches") != 1 or
+            live_receipt.get("nonTargetCount") != 599 or
+            live_receipt.get("mismatchFields") != ["explainLong", "updatedAt"]):
+        raise ValueError("approved R6-028 live diagnostic receipt invariants changed")
     before_key = "expected_before_source_row_sha256" if plane == "canonical" else "expected_before_runtime_row_sha256"
     reconstructed_before = dict(found[0])
     for field in whitelist:
@@ -219,6 +287,15 @@ def validate_r6_028_release_state(rows, plane):
         reconstructed_before[field] = before[field]
     if full_row_sha256(reconstructed_before) != ledger.get(before_key):
         raise ValueError(f"{plane}: approved R6-028 reconstructed before full-row hash mismatch")
+    if plane == "runtime":
+        live_after = dict(found[0])
+        live_after.update(live_overrides)
+        live_before = dict(live_after)
+        live_before["stem"] = before["stem"]
+        if full_row_sha256(live_before) != ledger.get("expected_before_live_runtime_row_sha256"):
+            raise ValueError("runtime: approved R6-028 live-before baseline hash mismatch")
+        if full_row_sha256(live_after) != ledger.get("expected_after_live_runtime_row_sha256"):
+            raise ValueError("runtime: approved R6-028 live-after baseline hash mismatch")
 
 
 STATEMENT_LABEL_LEDGER_ROWS = load_statement_label_ledger()
