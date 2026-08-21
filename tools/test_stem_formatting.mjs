@@ -139,21 +139,21 @@ assert.deepEqual(
 );
 assert.equal(repeatedLines[3].endsWith('したとき'), true, 'R2atakken-040 third item should end at the source boundary');
 assert.equal(
-  repeatedLines[4].startsWith('Aの事務所ではないがAが継続的に'),
+  repeatedLines[4].replace(/^[ア-エ]\u3000/, '').startsWith('Aの事務所ではないがAが継続的に'),
   true,
   'R2atakken-040 fourth item should begin on its own display line',
 );
 assert.equal(repeatedLines.reduce((total, line) => total + line.split(repeatedStart).length - 1, 0), 3);
 const punctuationlessLegacy = fmtStem(rowById.get('R3btakken-042').stem, 'R3btakken-042');
-assert.match(punctuationlessLegacy, /目的<br>設計図書/);
-assert.match(punctuationlessLegacy, /状況<br>契約の解除/);
-assert.match(punctuationlessLegacy, /内容<br>天災その他/);
+assert.match(punctuationlessLegacy, /目的<br>イ　設計図書/);
+assert.match(punctuationlessLegacy, /状況<br>ウ　契約の解除/);
+assert.match(punctuationlessLegacy, /内容<br>エ　天災その他/);
 const punctuationlessLines = punctuationlessLegacy.split('<br>');
-const punctuationlessStarts = ['借賃以外の金銭', '設計図書、点検記録', '契約の解除に関する', '天災その他不可抗力'];
-assert.equal(punctuationlessLines.length, 6, 'R3btakken-042 should render prompt, context, and four item lines');
+const punctuationlessStarts = ['ア　借賃以外の金銭', 'イ　設計図書、点検記録', 'ウ　契約の解除に関する', 'エ　天災その他不可抗力'];
+assert.equal(punctuationlessLines.length, 5, 'R3btakken-042 should render prompt and four labelled item lines');
 assert.deepEqual(
   punctuationlessStarts.map((start) => punctuationlessLines.findIndex((line) => line.includes(start))),
-  [2, 3, 4, 5],
+  [1, 2, 3, 4],
 );
 
 const labelledCountStem = [

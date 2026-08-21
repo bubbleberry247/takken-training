@@ -7,6 +7,7 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "data" / "takken_all_final.csv"
 DEST = ROOT / "data" / "takken_questionbank_import.csv"
+STATEMENT_LABEL_LEDGER = ROOT / "data" / "statement_label_corrections.csv"
 
 HEADERS = [
     "qId", "segmentId", "type", "difficulty",
@@ -119,6 +120,50 @@ STRUCTURED_STEM_SHA256 = {
 }
 
 
+def load_statement_label_ledger():
+    with STATEMENT_LABEL_LEDGER.open("r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+    required = {
+        "qId", "replacement_stem_sha256", "expected_label_sequence",
+        "official_source_url", "official_pdf_sha256", "pdf_page_1based",
+    }
+    if not required.issubset(set(reader.fieldnames or [])):
+        raise ValueError("Statement label ledger schema is incomplete")
+    return rows
+
+
+STATEMENT_LABEL_LEDGER_ROWS = load_statement_label_ledger()
+STATEMENT_LABEL_BLOCKED_QIDS = {"R6takken-028"}
+STATEMENT_LABEL_Q38_QIDS = {"R3atakken-038", "R3btakken-038"}
+
+
+def validate_statement_label_corrections(rows, label):
+    if len(STATEMENT_LABEL_LEDGER_ROWS) != 51:
+        raise ValueError("Statement label ledger must contain exactly 51 rows")
+    specs = {row["qId"]: row for row in STATEMENT_LABEL_LEDGER_ROWS}
+    if len(specs) != 51:
+        raise ValueError("Statement label ledger qIds must be unique")
+    if set(specs) & STATEMENT_LABEL_BLOCKED_QIDS:
+        raise ValueError("Blocked R6takken-028 must not be in statement label ledger")
+    if set(specs) & STATEMENT_LABEL_Q38_QIDS:
+        raise ValueError("R3 Q38 is excluded from the 51-question statement patch")
+    by_id = {row.get("qId", ""): row for row in rows}
+    for q_id, spec in specs.items():
+        row = by_id.get(q_id)
+        if row is None:
+            raise ValueError(f"Statement label qId missing from {label}: {q_id}")
+        stem = row.get("stem", "").replace("\r\n", "\n").replace("\r", "\n")
+        actual_hash = hashlib.sha256(stem.encode("utf-8")).hexdigest()
+        if actual_hash != spec["replacement_stem_sha256"]:
+            raise ValueError(f"Statement label replacement hash mismatch in {label}: {q_id}")
+        labels = spec["expected_label_sequence"].split("・")
+        for label_text in labels:
+            marker = "\n\n" + label_text + "\u3000"
+            if stem.count(marker) != 1:
+                raise ValueError(f"Statement label marker mismatch in {label}: {q_id}: {label_text}")
+
+
 def normalize_row(row):
     original_tag = (row.get("tag1") or "").strip()
     major = TAG_TO_MAJOR.get(original_tag, "税・その他")
@@ -208,6 +253,7 @@ def main():
 
     normalized = [normalize_row(row) for row in rows]
     validate_dataset(normalized, "generated data")
+    validate_statement_label_corrections(normalized, "generated data")
     validate_structured_questions(normalized)
 
     if "--check" in sys.argv:
@@ -218,6 +264,7 @@ def main():
             validate_headers(reader.fieldnames, "generated CSV")
             current = list(reader)
         validate_dataset(current, "generated CSV")
+        validate_statement_label_corrections(current, "generated CSV")
         differences = compare_rows(normalized, current)
         if differences:
             preview = "; ".join(f"{q_id}:{fields}" for q_id, fields in differences[:20])

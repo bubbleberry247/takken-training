@@ -947,11 +947,15 @@
 
       // A few legacy rows lost punctuation between statements during import,
       // but their boundaries are unambiguous from the repeated/known starts.
-      if (/Bが喫茶店で当該宅地の買受けの申込みをした場合において、/.test(s)) {
+      // Once an explicit ア/イ/ウ/エ list exists, the labels are already the
+      // authoritative boundaries; applying the legacy heuristic again would
+      // split each labelled line in two.
+      var hasExplicitStatementMarkers = hasStatementListMarkers_(s);
+      if (!hasExplicitStatementMarkers && /Bが喫茶店で当該宅地の買受けの申込みをした場合において、/.test(s)) {
         s = s.replace(/([^。\n])(?=Bが喫茶店で当該宅地の買受けの申込みをした場合において、)/g, '$1\n');
         s = s.replace(/([^。\n])(?=Aの事務所ではないがAが継続的に業務を行うことができる施設があり)/g, '$1\n');
       }
-      if (/設計図書、点検記録[\s\S]*契約の解除に関する[\s\S]*天災その他不可抗力/.test(s)) {
+      if (!hasExplicitStatementMarkers && /設計図書、点検記録[\s\S]*契約の解除に関する[\s\S]*天災その他不可抗力/.test(s)) {
         s = s.replace(/([^\n])(?=設計図書、点検記録)/g, '$1\n');
         s = s.replace(/([^\n])(?=契約の解除に関する)/g, '$1\n');
         s = s.replace(/([^\n])(?=天災その他不可抗力)/g, '$1\n');

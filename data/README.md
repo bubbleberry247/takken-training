@@ -11,6 +11,7 @@ QuestionBank に投入する問題データを格納するフォルダ。
 |----------|------|
 | `takken_all_final.csv` | 宅建過去問の元データ（600問） |
 | `takken_questionbank_import.csv` | QuestionBank 投入用の正規化済み CSV |
+| `statement_label_corrections.csv` | 公式原典照合済み51問のstemラベル修正台帳（R6takken-028/Q38除外） |
 <!-- END AUTO-GENERATED -->
 
 ## 注意事項
