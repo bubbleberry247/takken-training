@@ -43,9 +43,9 @@ function buildTeamProgressSummary_(accessRows, userRows, allAttempts, totalTests
   var viewerDisplayName = '';
   var includedByEmail = {};
 
-  // Team progress is an admin/manager-only summary.  A regular user must
-  // never receive another user's progress rows from this server-side helper.
-  if (!canViewTeam) return { team: team, warnings: warnings };
+  // Admin/manager see their existing scoped team summary.  A regular user
+  // may see only their own progress row; blank identity returns no rows.
+  if (!canViewTeam && !viewerEmail) return { team: team, warnings: warnings };
 
   userRows.forEach(function(r) {
     var em = String(r.email || '').trim().toLowerCase();
@@ -72,10 +72,11 @@ function buildTeamProgressSummary_(accessRows, userRows, allAttempts, totalTests
     var em = String(ar.email || '').trim().toLowerCase();
     if (!em) return;
 
-    // The signed-in admin/manager may always see their own row.  This is an
-    // intentional exception to the row visibility and manager-scope filters;
-    // it does not broaden access to anyone else's data.
+    // The signed-in viewer may always see their own row.  This is an
+    // intentional exception to row visibility and manager-scope filters;
+    // the regular-user branch above still blocks every other address.
     var isViewer = viewerEmail && em === viewerEmail;
+    if (viewerRole === 'user' && !isViewer) return;
     if (!isViewer) {
       if (normalizeUserAccessBoolean_(ar.active, true) === 'false') return;
       if (normalizeUserAccessBoolean_(ar.showInDashboard, true) === 'false') return;
@@ -311,7 +312,7 @@ function apiGetHome(clientUserKey) {
 
     var team = [];
     var teamWarnings = [];
-    if (access.role === 'manager' || access.role === 'admin') {
+    if (access.role === 'manager' || access.role === 'admin' || access.role === 'user') {
       try {
         var accessRows = readRecords_(getUserAccessSheet_());
         var userRows2 = readRecords_(getSheet_(SHEETS.Users));

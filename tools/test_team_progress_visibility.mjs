@@ -107,7 +107,13 @@ const userResult = summary(
   { role: 'user', email: 'user@example.com' },
   [...managerRows, { email: 'user@example.com', active: true, showInDashboard: true, managerEmail: '' }],
 );
-assert.deepEqual(userResult, { team: [], warnings: [] }, 'regular users receive no team summary');
+assert.deepEqual(userResult.team.map((row) => row.email), ['user@example.com'], 'regular users receive only their own row');
+assert.equal(userResult.team[0].progress.submitted, 0, 'regular users receive their own progress');
+assert.deepEqual(
+  summary({ role: 'user', email: '   ' }, managerRows).team,
+  [],
+  'blank regular-user identity never receives another user row',
+);
 
 const emptyViewerResult = summary(
   { role: 'admin', email: '   ' },
