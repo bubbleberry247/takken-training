@@ -4586,7 +4586,7 @@
           setStatus('検証に失敗しました', true);
           console.error(err);
         })
-        .apiAdminDryRunCsv(sheet, csv);
+        .apiAdminDryRunCsv(sheet, csv, getClientUserKey());
     }
 
     function adminImport() {
@@ -4609,7 +4609,7 @@
           setStatus('取り込みに失敗しました', true);
           console.error(err);
         })
-        .apiAdminImportCsv(sheet, csv);
+        .apiAdminImportCsv(sheet, csv, getClientUserKey());
     }
 
     function adminImportExplain() {
@@ -4628,7 +4628,7 @@
           setStatus('解説インポートに失敗しました', true);
           console.error(err);
         })
-        .apiImportExplanations(csv);
+        .apiImportExplanations(csv, getClientUserKey());
     }
 
     function adminUploadImages() {
