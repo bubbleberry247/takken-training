@@ -132,7 +132,7 @@ function makeHarness() {
         const replies = [];
         for (let i = 0; i < body.requests.length; i += 1) {
           const request = body.requests[i].findReplace;
-          assert.equal(request.allSheets, false);
+          assert.equal('allSheets' in request, false, 'range and allSheets are mutually exclusive; range-only is required');
           assert.equal(request.matchCase, true);
           assert.equal(request.matchEntireCell, true);
           assert.equal(request.searchByRegex, false);
@@ -286,6 +286,15 @@ assert.equal(applied.updated, 2);
 assert.equal(applyHarness.fakeSheets.calls.length, 1);
 assert.equal(applyHarness.fakeSheets.calls[0].body.requests.length, 2);
 assert.deepEqual(applyHarness.fakeSheets.calls[0].body.requests.map((request) => request.findReplace.find).length, 2);
+for (const request of applyHarness.fakeSheets.calls[0].body.requests) {
+  const findReplace = request.findReplace;
+  assert.equal('allSheets' in findReplace, false, 'API oneof contract: allSheets must be absent when range is present');
+  assert.ok(findReplace.range, 'API oneof contract: range must be present');
+  assert.equal(findReplace.range.sheetId, 101);
+  assert.equal(findReplace.range.startColumnIndex, stemIndex);
+  assert.equal(findReplace.range.endColumnIndex, stemIndex + 1);
+  assert.equal(findReplace.matchEntireCell, true);
+}
 assert.equal(applyHarness.cacheClears, 1);
 assert.equal(applyHarness.context._questionsCache, null);
 assert.equal(applyHarness.context._questionsCacheTs, 0);

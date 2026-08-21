@@ -734,7 +734,6 @@ function takkenR3Q38BatchFindReplace_(plan, replacements) {
       findReplace: {
         find: find,
         replacement: replaceWith,
-        allSheets: false,
         matchCase: true,
         matchEntireCell: true,
         searchByRegex: false,
