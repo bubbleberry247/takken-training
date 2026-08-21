@@ -4,7 +4,7 @@
  */
 
 /** 土木: GASエディタで▶実行 */
-function ADMIN_importDoboku() {
+function ADMIN_importDoboku_() {
   var fileId = '1mPp0JpnSV21G-9cKHsXFOKDp4WzrkLp1';
   var url = 'https://www.googleapis.com/drive/v3/files/' + fileId + '?alt=media';
   var token = ScriptApp.getOAuthToken();
@@ -58,7 +58,7 @@ function adminImportCsvText_(csvText) {
 }
 
 /** 全中断中mock attemptをexpiredにする（クリーンアップ） */
-function ADMIN_expireAllMockAttempts() {
+function ADMIN_expireAllMockAttempts_() {
   var attempts = readRecords_(getSheet_(SHEETS.Attempts));
   var fixed = 0;
   for (var i = 0; i < attempts.length; i++) {
@@ -74,7 +74,7 @@ function ADMIN_expireAllMockAttempts() {
 }
 
 /** デバッグ: R5AM resume処理を完全再現 */
-function ADMIN_debugMockR5AM() {
+function ADMIN_debugMockR5AM_() {
   // dancing.keita のattemptでresume処理をシミュレート
   var userKey = 'dancing.keita@gmail.com';
   var year = 'R5';
@@ -133,7 +133,7 @@ function ADMIN_debugMockR5AM() {
   return null;
 }
 
-function ADMIN_debugMockR5AM_OLD() {
+function ADMIN_debugMockR5AM_OLD_() {
   try {
     var attempts = readRecords_(getSheet_(SHEETS.Attempts));
     var active = [];

@@ -222,11 +222,11 @@ function setup_(force) {
   return { status: 'created', id: ss.getId(), url: ss.getUrl() };
 }
 
-function setup() {
+function setupEditor_() {
   return setup_(false);
 }
 
-function setupForce() {
+function setupForceEditor_() {
   return setup_(true);
 }
 

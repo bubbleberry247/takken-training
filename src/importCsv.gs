@@ -6,7 +6,7 @@
  * @param {string} csvText - CSV文字列（ヘッダー含む）
  * @returns {Object} { ok: boolean, rowsImported: number, error?: string }
  */
-function importQuestionBankFromCsv(csvText) {
+function importQuestionBankFromCsv_(csvText) {
   try {
     if (!csvText || typeof csvText !== 'string') {
       throw new Error('csvText is required and must be a string');
@@ -160,7 +160,7 @@ function parseCsvLine_(line) {
  * QuestionBankインポート用のGoogle DriveフォルダURLを返す
  * @returns {Object} { ok: boolean, folderId?: string, folderUrl?: string, message: string }
  */
-function getQuestionBankImportUrl() {
+function getQuestionBankImportUrl_() {
   try {
     var folder = getOrCreateImportFolder_();
     return {
@@ -173,7 +173,7 @@ function getQuestionBankImportUrl() {
     return {
       ok: false,
       error: err.message,
-      message: '代わりに、CSVテキストを直接 importQuestionBankFromCsv() に渡すこともできます'
+      message: '代わりに、メンテナンスキー付きPOSTでCSVテキストを取り込めます'
     };
   }
 }
@@ -183,11 +183,11 @@ function getQuestionBankImportUrl() {
  * @param {string} fileId - DriveファイルID
  * @returns {Object} インポート結果
  */
-function importQuestionBankFromDriveFile(fileId) {
+function importQuestionBankFromDriveFile_(fileId) {
   try {
     var file = DriveApp.getFileById(fileId);
     var csvText = file.getBlob().getDataAsString('UTF-8');
-    return importQuestionBankFromCsv(csvText);
+    return importQuestionBankFromCsv_(csvText);
   } catch (err) {
     Logger.log('importQuestionBankFromDriveFile ERROR: ' + err.message);
     return {
@@ -201,7 +201,7 @@ function importQuestionBankFromDriveFile(fileId) {
  * Google Driveフォルダから最新のquestionbank_import.csvを自動インポート
  * @returns {Object} インポート結果
  */
-function importQuestionBankFromFolder() {
+function importQuestionBankFromFolder_() {
   try {
     var folder = getOrCreateImportFolder_();
     var files = folder.getFilesByName('questionbank_import.csv');
@@ -217,7 +217,7 @@ function importQuestionBankFromFolder() {
     var file = files.next();
     Logger.log('Found CSV file: ' + file.getName() + ' (ID: ' + file.getId() + ')');
 
-    return importQuestionBankFromDriveFile(file.getId());
+    return importQuestionBankFromDriveFile_(file.getId());
 
   } catch (err) {
     Logger.log('importQuestionBankFromFolder ERROR: ' + err.message);
@@ -255,14 +255,14 @@ function getOrCreateImportFolder_() {
  * テスト用: ローカルCSVファイルの内容を直接貼り付けて実行
  * Apps Scriptエディタで実行可能
  */
-function testImportQuestionBankFromCsv() {
+function testImportQuestionBankFromCsv_() {
   // サンプルCSV（最初の3行のみ）
   var sampleCsv = '﻿qId,segmentId,type,difficulty,tag1,tag2,tag3,lawTag,revisionFlag,conceptId,variantGroupId,source_ref,imageUrl,choiceImageUrl,stem,choiceA,choiceB,choiceC,choiceD,choiceE,explainA,explainB,explainC,explainD,explainE,correct,explainShort,explainLong,status,updatedAt\n' +
     'H28takken-001,takken_rights,knowledge,3,権利関係,H28,,,0,,H28takken-001,TAKKEN-SAMPLE,,,"宅建試験の権利関係に関する次の記述のうち最も適切なものはどれか。","民法などの条文と判例を根拠に判断する。","宅建業法だけを見ればよい。","年度別演習は不要である。","権利関係は出題されない。",,,,,,,A,"権利関係は民法や判例を根拠に判断する。","権利関係では条文と判例をセットで確認する。",published,2026-04-11T00:00:00\n' +
     'H28takken-026,takken_business,knowledge,3,宅地建物取引業法等,H28,,,0,,H28takken-026,TAKKEN-SAMPLE,,,"宅地建物取引業法に関する次の記述のうち最も適切なものはどれか。","重要事項説明や37条書面を区別して整理する。","宅建業法は出題数が少ない。","広告規制は対象外である。","免許制度は学習不要である。",,,,,,,A,"宅建業法は手続と書面を区別する。","宅建業法は得点源になりやすいため手続ごとに整理する。",published,2026-04-11T00:00:00';
 
   Logger.log('Testing CSV import with sample data...');
-  var result = importQuestionBankFromCsv(sampleCsv);
+  var result = importQuestionBankFromCsv_(sampleCsv);
   Logger.log('Result: ' + JSON.stringify(result));
 
   return result;
@@ -272,13 +272,13 @@ function testImportQuestionBankFromCsv() {
  * 実際のCSVファイル全量をインポートする場合は、この関数を使用
  * CSVテキストを引数として渡す（Apps Scriptエディタでは実行しにくいため、Webエンドポイント経由推奨）
  */
-function importFullQuestionBank(csvText) {
+function importFullQuestionBank_(csvText) {
   if (!csvText) {
     throw new Error('csvText is required. Use testImportQuestionBankFromCsv() for sample test.');
   }
 
   Logger.log('Importing full QuestionBank CSV...');
-  var result = importQuestionBankFromCsv(csvText);
+  var result = importQuestionBankFromCsv_(csvText);
   Logger.log('Result: ' + JSON.stringify(result));
 
   return result;
@@ -287,9 +287,9 @@ function importFullQuestionBank(csvText) {
 /**
  * ファイルIDを指定してインポート
  */
-function importByFileId() {
+function importByFileId_() {
   var fileId = '13tgR5ynk6_s3BcAQY5oUJcoMA9qMBXy6';
-  var result = importQuestionBankFromDriveFile(fileId);
+  var result = importQuestionBankFromDriveFile_(fileId);
   Logger.log('Result: ' + JSON.stringify(result));
   return result;
 }

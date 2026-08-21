@@ -80,4 +80,33 @@ assert.match(htmlSource, /\.apiAdminDryRunCsv\(sheet, csv, getClientUserKey\(\)\
 assert.match(htmlSource, /\.apiAdminImportCsv\(sheet, csv, getClientUserKey\(\)\)/);
 assert.match(htmlSource, /\.apiImportExplanations\(csv, getClientUserKey\(\)\)/);
 
+const maintenanceSources = [
+  fs.readFileSync(new URL('../src/importCsv.gs', import.meta.url), 'utf8'),
+  fs.readFileSync(new URL('../src/adminImport.gs', import.meta.url), 'utf8'),
+  fs.readFileSync(new URL('../src/db.gs', import.meta.url), 'utf8'),
+  fs.readFileSync(new URL('../src/memberRoster.gs', import.meta.url), 'utf8'),
+  fs.readFileSync(new URL('../src/auth.gs', import.meta.url), 'utf8'),
+];
+const publicMaintenanceNames = [];
+for (const source of maintenanceSources) {
+  for (const match of source.matchAll(/^function ([A-Za-z0-9_]+)\(/gm)) {
+    const name = match[1];
+    if (
+      ['importQuestionBankFromCsv', 'importQuestionBankFromDriveFile', 'importQuestionBankFromFolder',
+       'getQuestionBankImportUrl', 'importFullQuestionBank', 'importByFileId',
+       'testImportQuestionBankFromCsv', 'setup', 'setupForce', 'syncDashboardRoster'].includes(name) ||
+      (name.startsWith('ADMIN_') && !name.endsWith('_'))
+    ) publicMaintenanceNames.push(name);
+  }
+}
+assert.deepEqual(publicMaintenanceNames, [], 'legacy maintenance entry points must be private');
+
+const codeSource = fs.readFileSync(new URL('../src/Code.gs', import.meta.url), 'utf8');
+assert.match(codeSource, /importQuestionBankFromFolder_\(\)/);
+assert.match(codeSource, /getQuestionBankImportUrl_\(\)/);
+assert.match(codeSource, /importQuestionBankFromCsv_\(csvText\)/);
+assert.match(codeSource, /importCsvText:\s*true/);
+assert.match(codeSource, /importCsvFromFolder[^]*maintenanceActions\[action\]/);
+
+
 console.log('admin import authorization contracts: blank/unknown/user deny and admin success');

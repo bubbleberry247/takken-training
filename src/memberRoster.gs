@@ -54,7 +54,7 @@ function ensureUserAccessDashboardSchema_(sheet) {
   sheet.setFrozenRows(1);
 }
 
-function syncDashboardRoster() {
+function syncDashboardRosterEditor_() {
   return syncDashboardRosterForCurrentApp_();
 }
 

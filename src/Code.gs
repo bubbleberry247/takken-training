@@ -470,12 +470,12 @@ function doGet(e) {
   }
 
   if (action === 'importCsvFromFolder') {
-    return ContentService.createTextOutput(JSON.stringify(importQuestionBankFromFolder()))
+    return ContentService.createTextOutput(JSON.stringify(importQuestionBankFromFolder_()))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
   if (action === 'getImportFolderUrl') {
-    return ContentService.createTextOutput(JSON.stringify(getQuestionBankImportUrl()))
+    return ContentService.createTextOutput(JSON.stringify(getQuestionBankImportUrl_()))
       .setMimeType(ContentService.MimeType.JSON);
   }
 
@@ -564,7 +564,7 @@ function doPost(e) {
         })).setMimeType(ContentService.MimeType.JSON);
       }
 
-      var result = importQuestionBankFromCsv(csvText);
+      var result = importQuestionBankFromCsv_(csvText);
       return ContentService.createTextOutput(JSON.stringify(result))
         .setMimeType(ContentService.MimeType.JSON);
     }
