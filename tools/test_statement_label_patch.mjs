@@ -2,31 +2,11 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { parseCsv } from './csv_test_utils.mjs';
 
 const sourceText = fs.readFileSync(new URL('../src/patchStatementLabels.gs', import.meta.url), 'utf8');
 const csvText = fs.readFileSync(new URL('../data/takken_questionbank_import.csv', import.meta.url), 'utf8');
 const ledgerText = fs.readFileSync(new URL('../data/statement_label_corrections.csv', import.meta.url), 'utf8');
-
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let field = '';
-  let quoted = false;
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    if (quoted) {
-      if (ch === '"') {
-        if (text[i + 1] === '"') { field += '"'; i += 1; } else quoted = false;
-      } else field += ch;
-    } else if (ch === '"') quoted = true;
-    else if (ch === ',') { row.push(field); field = ''; }
-    else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
-    else if (ch !== '\r') field += ch;
-  }
-  if (field !== '' || row.length > 0) { row.push(field); rows.push(row); }
-  const headers = rows.shift().map((header) => header.replace(/^\uFEFF/, ''));
-  return { headers, rows: rows.filter((values) => values.length > 1 || values[0]) };
-}
 
 class FakeRange {
   constructor(sheet, row, col, numRows = 1, numCols = 1) { this.sheet = sheet; this.row = row; this.col = col; this.numRows = numRows; this.numCols = numCols; }
@@ -61,6 +41,10 @@ class FakeDb {
 
 const parsed = parseCsv(csvText);
 const ledger = parseCsv(ledgerText);
+const parsedCrlfCheckout = parseCsv(csvText.replace(/\r?\n/g, '\r\n'));
+const ledgerCrlfCheckout = parseCsv(ledgerText.replace(/\r?\n/g, '\r\n'));
+assert.deepEqual(parsedCrlfCheckout, parsed, 'CRLF checkout must preserve all QuestionBank field semantics');
+assert.deepEqual(ledgerCrlfCheckout, ledger, 'CRLF checkout must preserve all ledger field semantics');
 const headers = parsed.headers;
 const stemIndex = headers.indexOf('stem');
 const correctIndex = headers.indexOf('correct');
@@ -85,6 +69,19 @@ function makeOldQuestionBank() {
     assert.equal(sha(row[stemIndex]), spec.expected_before_stem_sha256, `old fixture hash: ${row[0]}`);
   }
   return questionBank;
+}
+
+// Regression for the original Windows failure: a quoted multiline field for
+// H28takken-007 must remove labels and reproduce the fixed old-stem hash after
+// a simulated core.autocrlf=true checkout.
+{
+  const crlfRows = new Map(parsedCrlfCheckout.rows.map((row) => [row[0], row]));
+  const crlfLedger = new Map(ledgerCrlfCheckout.rows.map((row) =>
+    [row[0], Object.fromEntries(ledgerCrlfCheckout.headers.map((key, index) => [key, row[index]]))]));
+  const target = crlfRows.get('H28takken-007');
+  const spec = crlfLedger.get('H28takken-007');
+  assert.ok(target && spec);
+  assert.equal(sha(target[stemIndex].replace(/\n\n[ア-エ]\u3000/g, '')), spec.expected_before_stem_sha256);
 }
 
 function makeHarness(options = {}) {

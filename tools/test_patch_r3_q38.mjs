@@ -2,34 +2,11 @@ import assert from 'node:assert/strict';
 import crypto from 'node:crypto';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { parseCsv } from './csv_test_utils.mjs';
 
 const sourceText = fs.readFileSync(new URL('../src/patchR3Q38.gs', import.meta.url), 'utf8');
 const csvText = fs.readFileSync(new URL('../data/takken_questionbank_import.csv', import.meta.url), 'utf8');
 const manifest = JSON.parse(fs.readFileSync(new URL('../src/appsscript.json', import.meta.url), 'utf8'));
-
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let field = '';
-  let quoted = false;
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    if (quoted) {
-      if (ch === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i += 1;
-        } else quoted = false;
-      } else field += ch;
-    } else if (ch === '"') quoted = true;
-    else if (ch === ',') { row.push(field); field = ''; }
-    else if (ch === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
-    else if (ch !== '\r') field += ch;
-  }
-  if (field !== '' || row.length > 0) { row.push(field); rows.push(row); }
-  const headers = rows.shift().map((header) => header.replace(/^\uFEFF/, ''));
-  return { headers, rows: rows.filter((values) => values.length > 1 || values[0]) };
-}
 
 class FakeRange {
   constructor(sheet, row, col, numRows = 1, numCols = 1) {

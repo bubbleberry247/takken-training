@@ -1,1 +1,3 @@
 data/release-evidence/r6_q28_live_hash_diagnostic.json -text
+# Canonical CSVs contain quoted multiline fields whose LF bytes are hashed.
+data/*.csv text eol=lf

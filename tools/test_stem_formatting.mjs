@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict';
 import fs from 'node:fs';
 import vm from 'node:vm';
+import { parseCsvObjects } from './csv_test_utils.mjs';
 
 const source = fs.readFileSync(new URL('../src/index.html', import.meta.url), 'utf8');
 
@@ -42,50 +43,8 @@ vm.runInContext([
 
 const fmtStem = context.fmtStem;
 
-function parseCsv(text) {
-  const rows = [];
-  let row = [];
-  let field = '';
-  let quoted = false;
-  for (let i = 0; i < text.length; i += 1) {
-    const ch = text[i];
-    if (quoted) {
-      if (ch === '"') {
-        if (text[i + 1] === '"') {
-          field += '"';
-          i += 1;
-        } else {
-          quoted = false;
-        }
-      } else {
-        field += ch;
-      }
-    } else if (ch === '"') {
-      quoted = true;
-    } else if (ch === ',') {
-      row.push(field);
-      field = '';
-    } else if (ch === '\n') {
-      row.push(field);
-      rows.push(row);
-      row = [];
-      field = '';
-    } else if (ch !== '\r') {
-      field += ch;
-    }
-  }
-  if (field !== '' || row.length > 0) {
-    row.push(field);
-    rows.push(row);
-  }
-  const headers = rows.shift().map((header) => header.replace(/^\uFEFF/, ''));
-  return rows
-    .filter((values) => values.length > 1 || values[0])
-    .map((values) => Object.fromEntries(headers.map((header, index) => [header, values[index] || ''])));
-}
-
 const csv = fs.readFileSync(new URL('../data/takken_all_final.csv', import.meta.url), 'utf8');
-const rows = parseCsv(csv);
+const rows = parseCsvObjects(csv);
 const countRows = rows.filter((row) => /(いくつあるか|何個あるか|何人いるか)/.test(row.stem));
 const combinationRows = rows.filter((row) =>
   /(?:組合せ|組み合わせ)[^。！？\n]{0,100}(?:どれか|1から4)/.test(row.stem) ||
