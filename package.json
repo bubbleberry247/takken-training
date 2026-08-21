@@ -7,7 +7,7 @@
     "clasp:push": "clasp push",
     "lint": "echo \"(no lint)\"",
     "fix-csv": "node tools/fix_7_questions.mjs",
-    "test": "node tools/test_timer_contract.mjs && node tools/test_stem_formatting.mjs && node tools/test_team_progress_visibility.mjs && node tools/test_exam_rules_responsive.mjs && node tools/test_cache_version.mjs && node tools/test_patch_r3_q38.mjs && node tools/test_statement_label_patch.mjs && python tools/test_statement_label_ledger.py && python tools/apply_statement_label_corrections.py && python tools/build_takken_import_csv.py --check && python tools/test_takken_questionbank_pipeline.py"
+    "test": "node tools/test_timer_contract.mjs && node tools/test_stem_formatting.mjs && node tools/test_team_progress_visibility.mjs && node tools/test_exam_rules_responsive.mjs && node tools/test_cache_version.mjs && node tools/test_patch_r3_q38.mjs && node tools/test_statement_label_patch.mjs && node tools/test_r6_takken_028_patch.mjs && python tools/test_statement_label_ledger.py && python tools/test_r6_takken_028_release.py && python tools/test_r6_takken_028_builder_gate.py && python tools/r6_takken_028_release.py --check && python tools/apply_statement_label_corrections.py && python tools/build_takken_import_csv.py --check && python tools/test_takken_questionbank_pipeline.py"
   },
   "devDependencies": {
     "@google/clasp": "^2.5.0"

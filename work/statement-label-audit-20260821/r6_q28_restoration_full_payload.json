@@ -1,0 +1,104 @@
+{
+  "classification": "work_only_contains_official_question_text",
+  "qId": "R6takken-028",
+  "status": "approved_restoration_specification_production_apply_requires_live_hash_preflight",
+  "sources": {
+    "archive_url": "https://www.retio.or.jp/exam/past_ques_ans/other/",
+    "question_pdf_url": "https://www.retio.or.jp/wp-content/uploads/2025/03/R6_question_answer.pdf",
+    "question_pdf_sha256": "82a95815f991567ebc4982b05a15a71f6ec942bd6794c3bafe3bcf9c2e985bae",
+    "question_pdf_page_1based": 16,
+    "question_printed_footer_visual": 14,
+    "question_browser_page_index": 15,
+    "question_page_image_sha256": "46143e24f98c8f81e8d93613352dde7fd1516abe0f2b5b7b5c461f6c5e1c8f68",
+    "answer_pdf_url": "https://www.retio.or.jp/wp-content/uploads/2025/03/R6_question_answer.pdf",
+    "answer_pdf_sha256": "82a95815f991567ebc4982b05a15a71f6ec942bd6794c3bafe3bcf9c2e985bae",
+    "answer_pdf_page_1based": 29,
+    "official_answer_number": "2",
+    "official_answer_key": "B",
+    "law_as_of": "2024-04-01"
+  },
+  "official_structure": {
+    "prompt": "宅地建物取引業者Ａ（消費税課税事業者）及び宅地建物取引業者Ｂ（消費税免税事業者）が受領した報酬に関するアからウの記述のうち、宅地建物取引業法の規定に違反しないものの組合せは1から4のうちどれか。なお、代理、媒介に当たり、広告の依頼は行われていないものとする。",
+    "prompt_sha256": "e90fe4066ef918951b49d49f1e0176a11935201ce13724cd8ce2096a104b4bf3",
+    "statement_items": [
+      {
+        "label": "ア",
+        "text": "居住用建物（1か月の借賃12万円。消費税等相当額を含まない。）について、Ａは貸主から代理を依頼され、Ｂは借主から媒介を依頼され、Ａは貸主から6.7万円、Ｂは借主から6.5万円を報酬として受領した。なお、Ｂは、媒介の依頼を受けるに当たって、報酬について借主から特段の承諾を得ていない。",
+        "sha256": "fb055fe0f2277dfe1deb42ae57a4533255c8c8d10a9211fade1c0a711a7cb846",
+        "chars": 141
+      },
+      {
+        "label": "イ",
+        "text": "Ｂは、事業用建物について、貸主と借主双方から媒介を依頼され、借賃1か月分10万円（消費税等相当額を含まない。）、権利金90万円（権利設定の対価として支払われる金銭であって返還されないもので、消費税等相当額を含まない。）の賃貸借契約を成立させ、貸主と借主からそれぞれ5万円を報酬として受領した。",
+        "sha256": "327f8d7e3ed2b76542379e5dd670b7c852eb5b3cd607dcf79f78623b92f1d378",
+        "chars": 146
+      },
+      {
+        "label": "ウ",
+        "text": "Ａは、土地付建物について、売主と買主双方から媒介を依頼され、代金3,500万円（消費税等相当額を含み、土地代金は2,400万円である。）の売買契約を成立させ、売主と買主からそれぞれ110万円を報酬として受領したほか、売主の特別の依頼に基づき行った遠隔地への現地調査に要した実費の費用について、売主が事前に負担を承諾していたので、売主から9万円を受領した。",
+        "sha256": "6cbf9f47d83391a160baa6b08593f42aec403351bc48b467c3553d4ba09572d3",
+        "chars": 177
+      }
+    ],
+    "answer_options": {
+      "choiceA": "ア、イ",
+      "choiceB": "イ、ウ",
+      "choiceC": "ア、ウ",
+      "choiceD": "ア、イ、ウ",
+      "choiceE": ""
+    },
+    "correct_number": "2",
+    "correct_key": "B"
+  },
+  "old": {
+    "stem": "宅地建物取引業者A（消費税課税事業者）及び宅地建物取引業者B（消費税免税事業者）が受領した報酬に関するアからウの記述のうち、宅地建物取引業法の規定に違反しないものの組合せは1から4のうちどれか。なお、代理、媒介に当たり、広告の依頼は行われていないものとする。また、貸借の代理又は媒介をする宅地又は建物は長期の空家等には該当しない。",
+    "choiceA": "ア、イ",
+    "choiceB": "イ、ウ",
+    "choiceC": "ア、ウ",
+    "choiceD": "ア、イ、ウ",
+    "choiceE": "",
+    "correct": "B",
+    "explainA": "ア違反。居住用建物の貸借では報酬限度額は借賃1月分＋消費税。媒介で事前承諾なき場合、一方からの報酬は0.5月分＋消費税に制限。Bが6.5万円受領は違反。",
+    "explainB": "イ違反しない。事業用建物で権利金が存在する場合、権利金を売買代金とみなして計算可能。貸主・借主から各5万円で限度額内。",
+    "explainC": "ウ違反しない。建物部分の消費税を除外し、税抜き売買価格3,400万円で計算。依頼者の特別の依頼に基づく現地調査費用は事前承諾があれば別途受領可。",
+    "explainD": "アが違反するため、ア、イ、ウの組合せは不正解。",
+    "explainE": "",
+    "explainShort": "イとウは宅建業法に違反しない。アは媒介報酬の限度額超過により違反。",
+    "explainLong": "イとウは宅建業法に違反しない。アは媒介報酬の限度額超過により違反。",
+    "imageUrl": "",
+    "choiceImageUrl": "",
+    "source_ref": "https://takken-siken.com/kakomon/2024/28.html",
+    "status": "published"
+  },
+  "proposed": {
+    "stem": "宅地建物取引業者Ａ（消費税課税事業者）及び宅地建物取引業者Ｂ（消費税免税事業者）が受領した報酬に関するアからウの記述のうち、宅地建物取引業法の規定に違反しないものの組合せは1から4のうちどれか。なお、代理、媒介に当たり、広告の依頼は行われていないものとする。\nア　居住用建物（1か月の借賃12万円。消費税等相当額を含まない。）について、Ａは貸主から代理を依頼され、Ｂは借主から媒介を依頼され、Ａは貸主から6.7万円、Ｂは借主から6.5万円を報酬として受領した。なお、Ｂは、媒介の依頼を受けるに当たって、報酬について借主から特段の承諾を得ていない。\nイ　Ｂは、事業用建物について、貸主と借主双方から媒介を依頼され、借賃1か月分10万円（消費税等相当額を含まない。）、権利金90万円（権利設定の対価として支払われる金銭であって返還されないもので、消費税等相当額を含まない。）の賃貸借契約を成立させ、貸主と借主からそれぞれ5万円を報酬として受領した。\nウ　Ａは、土地付建物について、売主と買主双方から媒介を依頼され、代金3,500万円（消費税等相当額を含み、土地代金は2,400万円である。）の売買契約を成立させ、売主と買主からそれぞれ110万円を報酬として受領したほか、売主の特別の依頼に基づき行った遠隔地への現地調査に要した実費の費用について、売主が事前に負担を承諾していたので、売主から9万円を受領した。",
+    "choiceA": "ア、イ",
+    "choiceB": "イ、ウ",
+    "choiceC": "ア、ウ",
+    "choiceD": "ア、イ、ウ",
+    "choiceE": "",
+    "correct": "B",
+    "explainA": "ア違反。居住用建物の貸借では報酬限度額は借賃1月分＋消費税。媒介で事前承諾なき場合、一方からの報酬は0.5月分＋消費税に制限。Bが6.5万円受領は違反。",
+    "explainB": "イ違反しない。事業用建物で権利金が存在する場合、権利金を売買代金とみなして計算可能。貸主・借主から各5万円で限度額内。",
+    "explainC": "ウ違反しない。建物部分の消費税を除外し、税抜き売買価格3,400万円で計算。依頼者の特別の依頼に基づく現地調査費用は事前承諾があれば別途受領可。",
+    "explainD": "アが違反するため、ア、イ、ウの組合せは不正解。",
+    "explainE": "",
+    "explainShort": "イとウは宅建業法に違反しない。アは媒介報酬の限度額超過により違反。",
+    "explainLong": "イとウは宅建業法に違反しない。アは媒介報酬の限度額超過により違反。",
+    "imageUrl": "",
+    "choiceImageUrl": "",
+    "source_ref": "https://takken-siken.com/kakomon/2024/28.html",
+    "status": "published"
+  },
+  "explanation_assessment": {
+    "result": "structurally_consistent_with_official_statements_and_answer",
+    "limitation": "official source has no commentary; legal reasoning was not independently certified as official commentary"
+  },
+  "image_assessment": "official question has no figure/table; current image fields are empty",
+  "live_state_assessment": {
+    "direct_live_row_export": false,
+    "evidence": "production v64 receipt records R6takken-028 as unchanged/protected exclusion; last deployment bundle preserves the before baseline",
+    "local_canonical_import_state": "after",
+    "required_before_apply": "read current production row by qId and require exact old stem hash before any write"
+  }
+}

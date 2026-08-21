@@ -1,5 +1,6 @@
 import csv
 import hashlib
+import json
 import sys
 from pathlib import Path
 
@@ -8,6 +9,9 @@ ROOT = Path(__file__).resolve().parents[1]
 SRC = ROOT / "data" / "takken_all_final.csv"
 DEST = ROOT / "data" / "takken_questionbank_import.csv"
 STATEMENT_LABEL_LEDGER = ROOT / "data" / "statement_label_corrections.csv"
+R6_028_RELEASE_LEDGER = ROOT / "data" / "r6_takken_028_release_ledger.csv"
+R6_028_QID = "R6takken-028"
+R6_028_ALLOWED_FIELDS = {"stem"}
 
 HEADERS = [
     "qId", "segmentId", "type", "difficulty",
@@ -133,6 +137,90 @@ def load_statement_label_ledger():
     return rows
 
 
+def load_r6_028_release_ledger():
+    with R6_028_RELEASE_LEDGER.open("r", encoding="utf-8-sig", newline="") as f:
+        reader = csv.DictReader(f)
+        rows = list(reader)
+    if len(rows) != 1 or rows[0].get("qId") != R6_028_QID:
+        raise ValueError("R6-028 release ledger must contain exactly one fixed qId")
+    if (rows[0].get("official_pdf_sha256") != "82a95815f991567ebc4982b05a15a71f6ec942bd6794c3bafe3bcf9c2e985bae" or
+            rows[0].get("pdf_page_1based") != "16" or
+            rows[0].get("source_kind") != "RETIO_official_question_pdf" or
+            rows[0].get("expected_label_sequence") != "ア・イ・ウ"):
+        raise ValueError("R6-028 official source identity mismatch")
+    return rows[0]
+
+
+def canonical_cell(value):
+    return str(value or "").replace("\r\n", "\n").replace("\r", "\n")
+
+
+def full_row_sha256(row):
+    payload = "\x1f".join(f"{header}\x1e{canonical_cell(row.get(header, ''))}" for header in HEADERS)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def release_values_sha256(values, whitelist):
+    payload = "\x1f".join(f"{field}\x1e{canonical_cell(values[field])}" for field in whitelist)
+    return hashlib.sha256(payload.encode("utf-8")).hexdigest()
+
+
+def validate_r6_028_release_state(rows, plane):
+    ledger = load_r6_028_release_ledger()
+    found = [row for row in rows if row.get("qId") == R6_028_QID]
+    if len(found) != 1:
+        raise ValueError(f"{plane}: R6-028 must occur exactly once")
+    status = ledger.get("release_status", "").strip().lower()
+    if status not in {"blocked", "approved"}:
+        raise ValueError("R6-028 release status must be blocked or approved")
+    if plane == "canonical":
+        expected_key = "expected_before_source_row_sha256" if status == "blocked" else "expected_after_source_row_sha256"
+    elif plane == "runtime":
+        expected_key = "expected_before_runtime_row_sha256" if status == "blocked" else "expected_after_runtime_row_sha256"
+    else:
+        raise ValueError("unknown R6-028 validation plane")
+    expected_hash = ledger.get(expected_key, "")
+    if len(expected_hash) != 64 or full_row_sha256(found[0]) != expected_hash:
+        raise ValueError(f"{plane}: R6-028 full-row hash does not match {status} release ledger")
+    if status == "blocked":
+        if any(ledger.get(key, "").strip() for key in (
+            "field_whitelist", "before_values_json", "replacement_values_json",
+            "before_values_sha256", "replacement_values_sha256",
+            "expected_after_source_row_sha256", "expected_after_runtime_row_sha256",
+            "reviewer", "reviewed_at", "approval_evidence_sha256",
+        )):
+            raise ValueError("blocked R6-028 release ledger contains replacement payload")
+        return
+    whitelist = [field.strip() for field in ledger.get("field_whitelist", "").split(",") if field.strip()]
+    try:
+        before = json.loads(ledger.get("before_values_json", ""))
+        replacement = json.loads(ledger.get("replacement_values_json", ""))
+    except json.JSONDecodeError as exc:
+        raise ValueError("approved R6-028 before/replacement payload is invalid") from exc
+    if whitelist != ["stem"] or set(whitelist) != R6_028_ALLOWED_FIELDS:
+        raise ValueError("approved R6-028 whitelist must be exactly stem")
+    if (not isinstance(before, dict) or not isinstance(replacement, dict) or
+            set(before) != set(whitelist) or set(replacement) != set(whitelist) or
+            any(not isinstance(before[field], str) or not isinstance(replacement[field], str) for field in whitelist)):
+        raise ValueError("approved R6-028 whitelist/payload mismatch")
+    if any(canonical_cell(before[field]) == canonical_cell(replacement[field]) for field in whitelist):
+        raise ValueError("approved R6-028 whitelist must contain changed fields only")
+    if (release_values_sha256(before, whitelist) != ledger.get("before_values_sha256") or
+            release_values_sha256(replacement, whitelist) != ledger.get("replacement_values_sha256")):
+        raise ValueError("approved R6-028 payload hash mismatch")
+    if (not ledger.get("reviewer", "").strip() or not ledger.get("reviewed_at", "").strip() or
+            len(ledger.get("approval_evidence_sha256", "")) != 64):
+        raise ValueError("approved R6-028 reviewer/evidence is incomplete")
+    before_key = "expected_before_source_row_sha256" if plane == "canonical" else "expected_before_runtime_row_sha256"
+    reconstructed_before = dict(found[0])
+    for field in whitelist:
+        if canonical_cell(found[0].get(field, "")) != canonical_cell(replacement[field]):
+            raise ValueError(f"{plane}: approved R6-028 field mismatch: {field}")
+        reconstructed_before[field] = before[field]
+    if full_row_sha256(reconstructed_before) != ledger.get(before_key):
+        raise ValueError(f"{plane}: approved R6-028 reconstructed before full-row hash mismatch")
+
+
 STATEMENT_LABEL_LEDGER_ROWS = load_statement_label_ledger()
 STATEMENT_LABEL_BLOCKED_QIDS = {"R6takken-028"}
 STATEMENT_LABEL_Q38_QIDS = {"R3atakken-038", "R3btakken-038"}
@@ -250,9 +338,12 @@ def main():
         reader = csv.DictReader(f)
         validate_headers(reader.fieldnames, "tracked source")
         rows = list(reader)
+    validate_dataset(rows, "tracked source")
+    validate_r6_028_release_state(rows, "canonical")
 
     normalized = [normalize_row(row) for row in rows]
     validate_dataset(normalized, "generated data")
+    validate_r6_028_release_state(normalized, "runtime")
     validate_statement_label_corrections(normalized, "generated data")
     validate_structured_questions(normalized)
 
@@ -264,6 +355,7 @@ def main():
             validate_headers(reader.fieldnames, "generated CSV")
             current = list(reader)
         validate_dataset(current, "generated CSV")
+        validate_r6_028_release_state(current, "runtime")
         validate_statement_label_corrections(current, "generated CSV")
         differences = compare_rows(normalized, current)
         if differences:

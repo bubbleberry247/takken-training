@@ -1,0 +1,45 @@
+{
+  "qId": "R6takken-028",
+  "official_archive_url": "https://www.retio.or.jp/exam/past_ques_ans/other/",
+  "official_pdf_url": "https://www.retio.or.jp/wp-content/uploads/2025/03/R6_question_answer.pdf",
+  "official_pdf_sha256": "82a95815f991567ebc4982b05a15a71f6ec942bd6794c3bafe3bcf9c2e985bae",
+  "question_physical_page_1based": 16,
+  "question_printed_footer_visual": 14,
+  "question_browser_page_index_zero_based": 15,
+  "question_page_image_sha256": "46143e24f98c8f81e8d93613352dde7fd1516abe0f2b5b7b5c461f6c5e1c8f68",
+  "answer_physical_page_1based": 29,
+  "answer_index": 28,
+  "answer_number": "2",
+  "answer_key": "B",
+  "expected_label_sequence": [
+    "ア",
+    "イ",
+    "ウ"
+  ],
+  "statement_sha256": {
+    "ア": "fb055fe0f2277dfe1deb42ae57a4533255c8c8d10a9211fade1c0a711a7cb846",
+    "イ": "327f8d7e3ed2b76542379e5dd670b7c852eb5b3cd607dcf79f78623b92f1d378",
+    "ウ": "6cbf9f47d83391a160baa6b08593f42aec403351bc48b467c3553d4ba09572d3"
+  },
+  "statement_chars": {
+    "ア": 141,
+    "イ": 146,
+    "ウ": 177
+  },
+  "applicable_law_as_of": "2024-04-01",
+  "later_law_change_note": "RETIO archive warns that past questions may differ from current law. MLIT materials state the long-term-vacant-property remuneration exception took effect 2024-07-01.",
+  "mlit_change_source": "https://www.mlit.go.jp/tochi_fudousan_kensetsugyo/const/content/001750145.pdf",
+  "transcription_method": "manual_from_hash_verified_official_page_image; PDF_text_layer_not_used_as_character_oracle",
+  "input_row_sources": {
+    "canonical": "C:\\ProgramData\\Generative AI\\Github\\takken-training\\data\\takken_all_final.csv",
+    "import": "C:\\ProgramData\\Generative AI\\Github\\takken-training\\data\\takken_questionbank_import.csv",
+    "last_deploy_bundle": "C:\\tmp\\gas-deploy-20260807-1\\takken\\data\\takken_questionbank_import.csv"
+  },
+  "input_row_states": {
+    "canonical": "after",
+    "import": "after",
+    "last_deploy_bundle": "before"
+  },
+  "production_receipt": "C:\\ProgramData\\Generative AI\\Github\\takken-training\\work\\deploy-receipts\\20260822-014347-takken-production.json",
+  "direct_live_row_export": false
+}
