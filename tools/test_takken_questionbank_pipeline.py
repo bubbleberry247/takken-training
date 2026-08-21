@@ -49,9 +49,19 @@ class TakkenQuestionbankPipelineTest(unittest.TestCase):
             self.builder.validate_headers(self.builder.HEADERS + ["unexpected"], "schema test")
 
     def test_structured_question_inventory(self):
-        self.assertEqual(len(self.builder.COUNT_QUESTION_IDS), 21)
-        self.assertEqual(len(self.builder.COMBINATION_QUESTION_IDS), 3)
+        self.assertEqual(len(self.builder.COUNT_QUESTION_IDS), 22)
+        self.assertEqual(len(self.builder.COMBINATION_QUESTION_IDS), 4)
         self.builder.validate_structured_questions(self.generated)
+
+    def test_r3_q38_item_labels_and_line_breaks(self):
+        for q_id in ("R3atakken-038", "R3btakken-038"):
+            with self.subTest(q_id=q_id):
+                lines = self.generated_by_id[q_id]["stem"].splitlines()
+                self.assertEqual(lines[-4][0], "ア")
+                self.assertEqual(lines[-3][0], "イ")
+                self.assertEqual(lines[-2][0], "ウ")
+                self.assertEqual(lines[-1][0], "エ")
+                self.assertTrue(all(line.startswith(label + "\u3000") for line, label in zip(lines[-4:], "アイウエ")))
 
     def test_structured_question_invariants(self):
         structured = self.builder.COUNT_QUESTION_IDS | self.builder.COMBINATION_QUESTION_IDS

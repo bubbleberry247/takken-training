@@ -48,19 +48,22 @@ TAG_TO_MAJOR = {
 COUNT_QUESTION_IDS = {
     "R5takken-006", "R5takken-026", "R5takken-030", "R5takken-034",
     "R5takken-036", "R5takken-038", "R5takken-042", "R6takken-006",
-    "R6takken-026", "R6takken-037", "R6takken-041", "R7takken-003",
+    "R6takken-026", "R6takken-037", "R6takken-041", "R3atakken-038",
+    "R7takken-003",
     "R7takken-028", "R7takken-030", "R7takken-031", "R7takken-033",
     "R7takken-036", "R7takken-038", "R7takken-040", "R7takken-042",
     "R7takken-043",
 }
 
 COMBINATION_QUESTION_IDS = {
-    "R5takken-004", "R7takken-005", "R7takken-026",
+    "R3btakken-038", "R5takken-004", "R7takken-005", "R7takken-026",
 }
 
 COUNT_CHOICES_FOUR = ("一つ", "二つ", "三つ", "四つ")
 COUNT_CHOICES_NONE = ("一つ", "二つ", "三つ", "なし")
 STRUCTURED_QUESTION_FIXTURES = {
+    "R3atakken-038": (COUNT_CHOICES_FOUR, "D"),
+    "R3btakken-038": (("ア、イ", "ア、エ", "イ、ウ", "ウ、エ"), "C"),
     "R5takken-004": (("ア、イ、ウ", "イ、ウ", "ウ、エ", "エ"), "D"),
     "R5takken-006": (COUNT_CHOICES_NONE, "C"),
     "R5takken-026": (COUNT_CHOICES_FOUR, "C"),
@@ -87,6 +90,8 @@ STRUCTURED_QUESTION_FIXTURES = {
     "R7takken-043": (COUNT_CHOICES_FOUR, "D"),
 }
 STRUCTURED_STEM_SHA256 = {
+    "R3atakken-038": "09e45de1f487dc734b364c9f2b81bac3288781df1455c1ef0d0d4e9f25413399",
+    "R3btakken-038": "c208d30ca29b7fb1ab2305b7f17f9f1eae379e0b920b320c77ec79c36692a2fa",
     "R5takken-004": "6b0de46e6e8157bb5234f3c980667b131fd3e4d227a45a43b5e2c550e41b3122",
     "R5takken-006": "b04e2d9c4fe8b69074561b6996d53623b0d98caefb225f71dc595f13c79e4251",
     "R5takken-026": "694438209d9ce00c8e2c5637207005d6208c5b3ba3cabdfc65d82b9785cb594d",

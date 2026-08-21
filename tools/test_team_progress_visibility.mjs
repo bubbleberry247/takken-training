@@ -125,4 +125,27 @@ const emptyViewerResult = summary(
 );
 assert.deepEqual(emptyViewerResult.team.map((row) => row.email), ['active@example.com'], 'blank viewer email never becomes a self-match');
 
-console.log('team progress visibility: duplicate and role regressions passed');
+const clientSource = fs.readFileSync(new URL('../src/index.html', import.meta.url), 'utf8');
+const statusSource = clientSource.match(/function getTeamMemberStatus_\(t\) \{[\s\S]*?\n    \}/)?.[0];
+assert.ok(statusSource, 'getTeamMemberStatus_ remains available for the dashboard contract');
+const statusContext = {};
+vm.createContext(statusContext);
+vm.runInContext(statusSource, statusContext);
+const statusFor = (progress) => statusContext.getTeamMemberStatus_({ progress });
+assert.equal(statusFor({ totalTests: 10, submittedTests: 7, avgScore: 75, last7DaysCount: 0 }).label, '優秀');
+assert.equal(statusFor({ totalTests: 10, submittedTests: 7, avgScore: 59, last7DaysCount: 3 }).label, '要サポート', 'support keeps priority over growth');
+assert.equal(statusFor({ totalTests: 10, submittedTests: 0, avgScore: 0, last7DaysCount: 3 }).label, '急成長');
+assert.equal(statusFor({ totalTests: 10, submittedTests: 2, avgScore: 60, last7DaysCount: 0 }).label, '停滞中');
+assert.equal(statusFor({ totalTests: 10, submittedTests: 2, avgScore: 60, last7DaysCount: 1 }), null);
+
+const helpIndex = clientSource.indexOf('id="dashboard-status-help"');
+const chartIndex = clientSource.indexOf('// Chart 1: 進捗率（進捗順）', helpIndex);
+assert.ok(helpIndex >= 0 && chartIndex > helpIndex, 'status help is placed before the first progress chart');
+assert.match(clientSource, /アイコンの見方（1人1分類）/);
+assert.match(clientSource, /判定優先順：優秀 → 要サポート → 急成長 → 停滞中/);
+assert.match(clientSource, /平均正答率75%以上 かつ ミニテスト進捗率70%以上/);
+assert.match(clientSource, /直近7日の活動記録が2回以上、平均正答率60%未満、提出済み1回以上/);
+assert.match(clientSource, /直近7日の活動記録が3回以上/);
+assert.match(clientSource, /直近7日の活動記録が0回 かつ ミニテスト進捗率30%未満/);
+
+console.log('team progress visibility: duplicate, role, and status-help regressions passed');
