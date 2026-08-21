@@ -438,17 +438,46 @@ function getCachedTestPlan_() {
 // Script-scope cache for full QuestionBank (avoids 100KB CacheService limit)
 var _questionsCache = null;
 var _questionsCacheTs = 0;
+var _questionsCacheVersion = '';
+
+function nextQuestionsCacheVersion_() {
+  // Date.now() alone can repeat when two maintenance calls occur in one
+  // millisecond. UUID makes the cross-execution invalidation token unique.
+  return String(Date.now()) + '-' + Utilities.getUuid();
+}
 
 function getCachedQuestions_() {
-  // 1. Script-scope cache (instant, same execution)
+  // 1. Cross-execution version marker must agree with the in-process cache.
+  // This prevents another Web App instance's clearAllCache_() from being
+  // hidden by this instance's remaining TTL.
   var now = Date.now();
-  if (_questionsCache && (now - _questionsCacheTs) < CACHE_TTL_QUESTIONS * 1000) {
+  var cache = null;
+  var cacheVersion = '';
+  try {
+    cache = getCache_();
+    cacheVersion = cache.get('questions_version') || '';
+  } catch (e) {
+    // A transient CacheService failure must not make the normal read path
+    // unavailable. With no version marker, bypass the in-process cache and
+    // read the sheet directly for this request.
+    cache = null;
+  }
+  if (cacheVersion && _questionsCache && _questionsCacheVersion === cacheVersion &&
+      (now - _questionsCacheTs) < CACHE_TTL_QUESTIONS * 1000) {
     return _questionsCache;
   }
 
-  // 2. CacheService flag check (cross-execution, lightweight)
-  var cache = getCache_();
-  var cacheVersion = cache.get('questions_version');
+  // Establish a marker on first read so future executions share a known
+  // version even when no previous writer has populated the CacheService key.
+  if (!cacheVersion) {
+    cacheVersion = nextQuestionsCacheVersion_();
+    if (cache) {
+      try { cache.put('questions_version', cacheVersion, CACHE_TTL_QUESTIONS); }
+      catch(e) { cacheVersion = ''; }
+    } else {
+      cacheVersion = '';
+    }
+  }
 
   // 3. Read from sheet
   var sh = getSheet_(SHEETS.QuestionBank);
@@ -456,6 +485,7 @@ function getCachedQuestions_() {
   if (values.length <= 1) {
     _questionsCache = [];
     _questionsCacheTs = now;
+    _questionsCacheVersion = cacheVersion;
     return [];
   }
   var headers = values[0].map(function(h, i){ return normalizeHeader_(h, i); });
@@ -471,14 +501,56 @@ function getCachedQuestions_() {
   // Store in script-scope (no size limit)
   _questionsCache = rows;
   _questionsCacheTs = now;
+  _questionsCacheVersion = cacheVersion;
 
-  // Store lightweight version marker in CacheService
-  try { cache.put('questions_version', String(now), CACHE_TTL_QUESTIONS); } catch(e) {}
   return rows;
 }
 
-function clearAllCache_() {
-  var cache = getCache_();
-  cache.removeAll(['config_map', 'testplan_rows', 'questions_list']);
+function invalidateQuestionsCache_(options) {
+  options = options || {};
+  var strict = options.strict === true;
+  var version = nextQuestionsCacheVersion_();
+  _questionsCache = null;
+  _questionsCacheTs = 0;
+  _questionsCacheVersion = '';
+  try {
+    var cache = getCache_();
+    cache.put('questions_version', version, CACHE_TTL_QUESTIONS);
+    // The patch transaction requires proof that the shared marker actually
+    // became visible. A successful put() alone is insufficient: a stale,
+    // dropped, or empty write would leave another Web App instance serving
+    // the pre-patch QuestionBank until the old TTL expires.
+    if (strict) {
+      var observedVersion = String(cache.get('questions_version') || '');
+      if (observedVersion !== version) {
+        throw new Error('questions_version read-after-write mismatch: expected=' +
+          version + ', observed=' + (observedVersion || '<empty>'));
+      }
+    }
+    _questionsCacheVersion = version;
+    return { ok: true, version: version };
+  } catch (e) {
+    if (strict) {
+      throw new Error('questions_version cache invalidation failed: ' + String(e.message || e));
+    }
+    return { ok: false, error: String(e.message || e) };
+  }
+}
+
+function clearAllCache_(options) {
+  options = options || {};
+  var strict = options.strict === true;
+  var removeError = null;
+  try {
+    var cache = getCache_();
+    cache.removeAll(['config_map', 'testplan_rows', 'questions_list']);
+  } catch (e) {
+    removeError = e;
+  }
+  var result = invalidateQuestionsCache_({ strict: strict });
+  if (strict && removeError) {
+    throw new Error('cache invalidation failed: ' + String(removeError.message || removeError));
+  }
+  return result;
 }
 
